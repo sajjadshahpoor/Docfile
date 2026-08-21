@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { useRef } from 'react'
+import { COMMON_FONTS, ALL_OFFICE_FONTS } from './fonts'
 
 interface ToolbarProps {
   editor: Editor | null
@@ -76,6 +77,14 @@ export default function Toolbar({ editor }: ToolbarProps): JSX.Element {
     editor.chain().focus().setColor(color).run()
   }
 
+  const setFontFamily = (value: string): void => {
+    if (value === 'default') {
+      editor.chain().focus().unsetFontFamily().run()
+    } else {
+      editor.chain().focus().setFontFamily(value).run()
+    }
+  }
+
   const setHighlight = (color: string): void => {
     editor.chain().focus().toggleHighlight({ color }).run()
   }
@@ -93,6 +102,8 @@ export default function Toolbar({ editor }: ToolbarProps): JSX.Element {
             : editor.isActive('heading', { level: 6 })
               ? '6'
               : 'paragraph'
+
+  const currentFont = (editor.getAttributes('textStyle').fontFamily as string) ?? 'default'
 
   return (
     <div className="flex flex-wrap items-center gap-1 border-b border-gray-200 bg-white px-3 py-1.5">
@@ -117,6 +128,32 @@ export default function Toolbar({ editor }: ToolbarProps): JSX.Element {
         <option value="4">Heading 4</option>
         <option value="5">Heading 5</option>
         <option value="6">Heading 6</option>
+      </select>
+
+      <Divider />
+
+      <select
+        value={currentFont}
+        onChange={(e) => setFontFamily(e.target.value)}
+        title="Font"
+        className="h-8 w-40 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+        style={{ fontFamily: currentFont === 'default' ? undefined : currentFont }}
+      >
+        <option value="default">Default</option>
+        <optgroup label="Common">
+          {COMMON_FONTS.map((font) => (
+            <option key={font} value={font} style={{ fontFamily: font }}>
+              {font}
+            </option>
+          ))}
+        </optgroup>
+        <optgroup label="All Office fonts">
+          {ALL_OFFICE_FONTS.map((font) => (
+            <option key={font} value={font} style={{ fontFamily: font }}>
+              {font}
+            </option>
+          ))}
+        </optgroup>
       </select>
 
       <Divider />

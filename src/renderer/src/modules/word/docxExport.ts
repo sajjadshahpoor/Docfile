@@ -140,6 +140,10 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
     const highlightMark = marks.find((m) => m.type === 'highlight')
 
     const color = normalizeColor(textStyleMark?.attrs?.color)
+    const fontFamily =
+      typeof textStyleMark?.attrs?.fontFamily === 'string'
+        ? (textStyleMark.attrs.fontFamily as string)
+        : undefined
     const highlightColor =
       typeof highlightMark?.attrs?.color === 'string'
         ? HIGHLIGHT_MAP[(highlightMark.attrs.color as string).toLowerCase()]
@@ -153,6 +157,7 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
         underline: isUnderline ? { type: UnderlineType.SINGLE } : undefined,
         strike: isStrike,
         color,
+        font: fontFamily,
         highlight: highlightColor as never,
         style: isLink ? 'Hyperlink' : undefined
       })
