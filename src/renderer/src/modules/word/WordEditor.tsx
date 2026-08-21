@@ -48,7 +48,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Link.configure({ openOnClick: false }),
-      Image,
+      Image.configure({ allowBase64: true }),
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,

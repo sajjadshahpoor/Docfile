@@ -6,3 +6,9 @@ release
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# Personal test documents dropped in the project root for debugging —
+# never part of the app itself.
+/*.docx
+/*.xlsx
+/*.pptx
