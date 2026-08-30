@@ -10,8 +10,15 @@ export type UpdateStatus =
   | { state: 'error'; message: string }
 
 let mainWindowRef: BrowserWindow | null = null
+// The renderer's UpdateBanner subscribes on mount, which can happen after
+// the main process has already fired (and lost) earlier events — webContents.send
+// doesn't replay to late listeners. Tracking the last status lets a
+// just-mounted renderer ask "what's the current status?" instead of only
+// hearing about whatever happens to fire after it's ready.
+let lastStatus: UpdateStatus | null = null
 
 function send(status: UpdateStatus): void {
+  lastStatus = status
   if (!mainWindowRef || mainWindowRef.isDestroyed()) return
   mainWindowRef.webContents.send('update:status', status)
 }
@@ -40,6 +47,8 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
   ipcMain.handle('update:restartAndInstall', () => {
     autoUpdater.quitAndInstall()
   })
+
+  ipcMain.handle('update:getStatus', () => lastStatus)
 
   // Check shortly after launch rather than blocking startup on it.
   setTimeout(() => {

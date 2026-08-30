@@ -42,6 +42,8 @@ const api = {
 
   restartAndInstallUpdate: (): Promise<void> => ipcRenderer.invoke('update:restartAndInstall'),
 
+  getUpdateStatus: (): Promise<UpdateStatus | null> => ipcRenderer.invoke('update:getStatus'),
+
   onUpdateStatus: (callback: (status: UpdateStatus) => void): (() => void) => {
     const listener = (_event: IpcRendererEvent, status: UpdateStatus): void => callback(status)
     ipcRenderer.on('update:status', listener)

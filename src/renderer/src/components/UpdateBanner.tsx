@@ -14,6 +14,14 @@ export default function UpdateBanner(): JSX.Element | null {
 
   useEffect(() => {
     if (!window.docfile?.onUpdateStatus) return
+
+    // The main process may have already fired events (checking/available/
+    // downloaded) before this component mounted — webContents.send doesn't
+    // replay missed messages, so ask for whatever the current status is.
+    window.docfile.getUpdateStatus?.().then((current) => {
+      if (current) setStatus(current)
+    })
+
     const unsubscribe = window.docfile.onUpdateStatus((next) => {
       setStatus(next)
       setDismissed(false)
