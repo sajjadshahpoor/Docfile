@@ -68,11 +68,19 @@ export default function Launcher(): JSX.Element {
 
   return (
     <div className="h-full w-full overflow-y-auto bg-gray-50">
-      <header className="border-b border-gray-200 bg-white px-8 py-5">
-        <h1 className="text-xl font-semibold text-gray-800">Docfile</h1>
-        <p className="text-sm text-gray-500">
-          Your local, offline document suite — files never leave this computer.
-        </p>
+      <header className="flex items-start justify-between border-b border-gray-200 bg-white px-8 py-5">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-800">Docfile</h1>
+          <p className="text-sm text-gray-500">
+            Your local, offline document suite — files never leave this computer.
+          </p>
+        </div>
+        <button
+          onClick={() => setAboutOpen(true)}
+          className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+        >
+          About Docfile
+        </button>
       </header>
 
       <main className="mx-auto max-w-5xl px-8 py-8">
@@ -143,15 +151,6 @@ export default function Launcher(): JSX.Element {
           )}
         </section>
       </main>
-
-      <footer className="mx-auto max-w-5xl px-8 pb-8 text-center">
-        <button
-          onClick={() => setAboutOpen(true)}
-          className="text-xs text-gray-400 hover:text-gray-600 hover:underline"
-        >
-          About Docfile
-        </button>
-      </footer>
 
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
     </div>
