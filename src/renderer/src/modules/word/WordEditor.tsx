@@ -19,6 +19,8 @@ import { useEffect, useRef, useState } from 'react'
 import Ribbon from './Ribbon'
 import FindReplace from './FindReplace'
 import StatusBar from './StatusBar'
+import Backstage from './backstage/Backstage'
+import UnsavedChangesDialog from './UnsavedChangesDialog'
 import { importDocx } from './docxImport'
 import { exportDocx } from './docxExport'
 import { useAppStore } from '../../store/appStore'
@@ -27,6 +29,8 @@ import { PageBreak } from './extensions/pageBreak'
 import { ParagraphFormatting } from './extensions/paragraphFormatting'
 import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './pageSetup'
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
+import { DEFAULT_SETTINGS, type AppSettings } from './settings'
+import type { DocTemplate } from './templates'
 
 interface WordEditorProps {
   filePath: string | null
@@ -41,6 +45,7 @@ function fileNameFromPath(path: string | null): string {
 export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const goToLauncher = useAppStore((s) => s.goToLauncher)
   const refreshRecents = useAppStore((s) => s.refreshRecents)
+  const recents = useAppStore((s) => s.recents)
 
   const [currentPath, setCurrentPath] = useState<string | null>(filePath)
   const [isDirty, setIsDirty] = useState(false)
@@ -52,7 +57,11 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const [headerFooter, setHeaderFooter] = useState<HeaderFooterState>(DEFAULT_HEADER_FOOTER)
   const [zoom, setZoom] = useState(100)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
+  const [fileMenuOpen, setFileMenuOpen] = useState(false)
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const loadedPathRef = useRef<string | null>(null)
+  const isDirtyRef = useRef(isDirty)
+  isDirtyRef.current = isDirty
 
   const editor = useEditor({
     extensions: [
@@ -81,36 +90,50 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   })
 
   useEffect(() => {
-    if (!editor) return
-    if (!filePath || loadedPathRef.current === filePath) return
+    window.docfile.getSettings().then(setSettings)
+  }, [])
 
-    loadedPathRef.current = filePath
+  useEffect(() => {
+    if (!editor) return
+    editor.view.dom.setAttribute('spellcheck', settings.spellCheck ? 'true' : 'false')
+  }, [editor, settings.spellCheck])
+
+  const loadDocument = async (path: string): Promise<void> => {
+    if (!editor) return
+    loadedPathRef.current = path
     setIsLoading(true)
     setError(null)
+    setFileMenuOpen(false)
+    try {
+      const data = await window.docfile.readFile(path)
+      const result = await importDocx(data)
+      editor.commands.setContent(result.html)
+      setWarnings(result.warnings)
+      setCurrentPath(path)
+      setIsDirty(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to open document')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-    window.docfile
-      .readFile(filePath)
-      .then((data) => importDocx(data))
-      .then((result) => {
-        editor.commands.setContent(result.html)
-        setWarnings(result.warnings)
-        setIsDirty(false)
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Failed to open document')
-      })
-      .finally(() => setIsLoading(false))
+  useEffect(() => {
+    if (!editor) return
+    if (!filePath || loadedPathRef.current === filePath) return
+    loadDocument(filePath)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, filePath])
 
-  const handleSave = async (forcePicker = false): Promise<void> => {
-    if (!editor) return
+  const handleSave = async (forcePicker = false): Promise<boolean> => {
+    if (!editor) return false
     setIsSaving(true)
     setError(null)
     try {
       let targetPath = currentPath
       if (forcePicker || !targetPath) {
         const picked = await window.docfile.saveFile('word', targetPath ?? 'Untitled.docx')
-        if (!picked) return
+        if (!picked) return false
         targetPath = picked
       }
 
@@ -125,11 +148,83 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         module: 'word'
       })
       refreshRecents()
+      return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save document')
+      return false
     } finally {
       setIsSaving(false)
     }
+  }
+
+  // When an action would discard unsaved changes (close/new/open), it's stashed
+  // here and only run once the user resolves the UnsavedChangesDialog — matching
+  // Word's real "Do you want to save changes?" Save/Don't Save/Cancel prompt.
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  const runGuarded = (action: () => void): void => {
+    if (!isDirtyRef.current) {
+      action()
+      return
+    }
+    setPendingAction(() => action)
+  }
+
+  const resolvePendingSave = async (): Promise<void> => {
+    const action = pendingAction
+    setPendingAction(null)
+    if (!action) return
+    const saved = await handleSave(false)
+    if (saved) action()
+  }
+
+  const resolvePendingDontSave = (): void => {
+    const action = pendingAction
+    setPendingAction(null)
+    action?.()
+  }
+
+  const handleClose = (): void => {
+    runGuarded(() => {
+      setFileMenuOpen(false)
+      goToLauncher()
+    })
+  }
+
+  const handlePickTemplate = (template: DocTemplate): void => {
+    if (!editor) return
+    runGuarded(() => {
+      loadedPathRef.current = null
+      setCurrentPath(null)
+      setWarnings([])
+      setError(null)
+      editor.commands.setContent(template.html)
+      if (settings.defaultFont) {
+        editor.chain().focus().selectAll().setFontFamily(settings.defaultFont).run()
+        editor.commands.setTextSelection(0)
+      }
+      setIsDirty(false)
+      setFileMenuOpen(false)
+    })
+  }
+
+  const handleOpenRecent = (path: string): void => {
+    runGuarded(() => {
+      loadDocument(path)
+    })
+  }
+
+  const handleBrowseOpen = async (): Promise<void> => {
+    const picked = await window.docfile.openFile('word')
+    if (!picked) return
+    runGuarded(() => {
+      loadDocument(picked)
+    })
+  }
+
+  const handleToggleFavorite = async (path: string): Promise<void> => {
+    await window.docfile.toggleFavoriteRecent(path)
+    refreshRecents()
   }
 
   const dimensions = getPreviewDimensions(pageSetup)
@@ -138,7 +233,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
     <div className="flex h-full flex-col bg-gray-100">
       <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2">
         <button
-          onClick={goToLauncher}
+          onClick={handleClose}
           className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
           title="Back to launcher"
         >
@@ -189,6 +284,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         zoom={zoom}
         onZoomChange={setZoom}
         onToggleFindReplace={() => setFindReplaceOpen((v) => !v)}
+        onOpenFileMenu={() => setFileMenuOpen(true)}
       />
 
       {findReplaceOpen && editor && (
@@ -257,7 +353,35 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         )}
       </div>
 
-      <StatusBar editor={editor} zoom={zoom} onZoomChange={setZoom} />
+      <StatusBar editor={editor} zoom={zoom} onZoomChange={setZoom} showWordCount={settings.showWordCount} />
+
+      {fileMenuOpen && (
+        <Backstage
+          editor={editor}
+          recents={recents}
+          currentPath={currentPath}
+          fileName={fileNameFromPath(currentPath)}
+          pageSetup={pageSetup}
+          onDismiss={() => setFileMenuOpen(false)}
+          onCloseDocument={handleClose}
+          onSave={() => handleSave(false)}
+          onSaveAsBrowse={() => handleSave(true)}
+          onPickTemplate={handlePickTemplate}
+          onOpenRecent={handleOpenRecent}
+          onBrowseOpen={handleBrowseOpen}
+          onToggleFavorite={handleToggleFavorite}
+          onSettingsChange={setSettings}
+        />
+      )}
+
+      {pendingAction && (
+        <UnsavedChangesDialog
+          fileName={fileNameFromPath(currentPath)}
+          onSave={resolvePendingSave}
+          onDontSave={resolvePendingDontSave}
+          onCancel={() => setPendingAction(null)}
+        />
+      )}
     </div>
   )
 }

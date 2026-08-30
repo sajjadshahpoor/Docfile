@@ -7,6 +7,7 @@ export interface RecentFile {
   name: string
   module: ModuleName
   openedAt: number
+  favorite?: boolean
 }
 
 export type ActiveView =

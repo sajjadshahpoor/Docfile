@@ -25,6 +25,7 @@ interface RibbonProps {
   zoom: number
   onZoomChange: (zoom: number) => void
   onToggleFindReplace: () => void
+  onOpenFileMenu: () => void
 }
 
 export default function Ribbon({
@@ -35,7 +36,8 @@ export default function Ribbon({
   onHeaderFooterChange,
   zoom,
   onZoomChange,
-  onToggleFindReplace
+  onToggleFindReplace,
+  onOpenFileMenu
 }: RibbonProps): JSX.Element {
   const [activeTab, setActiveTab] = useState<RibbonTabName>('home')
 
@@ -44,6 +46,13 @@ export default function Ribbon({
   return (
     <div className="border-b border-gray-200 bg-white">
       <div className="flex gap-1 px-3 pt-1.5 text-sm">
+        <button
+          type="button"
+          onClick={onOpenFileMenu}
+          className="rounded-t bg-office-word px-3 py-1.5 font-medium text-white hover:bg-office-word/90"
+        >
+          File
+        </button>
         {TABS.map((tab) => (
           <button
             key={tab.id}

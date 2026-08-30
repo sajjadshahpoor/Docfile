@@ -8,16 +8,29 @@ interface RecentFile {
   name: string
   module: 'word' | 'excel' | 'powerpoint'
   openedAt: number
+  favorite?: boolean
+}
+
+interface AppSettings {
+  spellCheck: boolean
+  defaultFont: string
+  showWordCount: boolean
 }
 
 const store = new Store<{ recents: RecentFile[] }>({
   defaults: { recents: [] }
 })
 
+const settingsStore = new Store<AppSettings>({
+  name: 'settings',
+  defaults: { spellCheck: true, defaultFont: 'Calibri', showWordCount: true }
+})
+
 const MODULE_FILTERS: Record<string, Electron.FileFilter[]> = {
   word: [{ name: 'Word Document', extensions: ['docx'] }],
   excel: [{ name: 'Excel Workbook', extensions: ['xlsx'] }],
-  powerpoint: [{ name: 'PowerPoint Presentation', extensions: ['pptx'] }]
+  powerpoint: [{ name: 'PowerPoint Presentation', extensions: ['pptx'] }],
+  pdf: [{ name: 'PDF Document', extensions: ['pdf'] }]
 }
 
 function createWindow(): void {
@@ -54,6 +67,44 @@ function createWindow(): void {
   }
 }
 
+// Print and PDF export both need to act on ONLY the document's own HTML — not
+// whatever the main app window happens to be showing (ribbon, Backstage, etc.) —
+// so both render into a throwaway hidden window first.
+async function withDocumentWindow<T>(
+  html: string,
+  action: (win: BrowserWindow) => Promise<T>
+): Promise<T> {
+  const docWindow = new BrowserWindow({
+    show: false,
+    webPreferences: { sandbox: true }
+  })
+
+  try {
+    await docWindow.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(html)}`)
+    return await action(docWindow)
+  } finally {
+    docWindow.destroy()
+  }
+}
+
+async function exportHtmlToPdf(html: string): Promise<Uint8Array> {
+  return withDocumentWindow(html, async (docWindow) => {
+    const pdfBuffer = await docWindow.webContents.printToPDF({
+      printBackground: true,
+      preferCSSPageSize: true
+    })
+    return new Uint8Array(pdfBuffer)
+  })
+}
+
+function printHtml(html: string): Promise<void> {
+  return withDocumentWindow(html, (docWindow) => {
+    return new Promise<void>((resolve) => {
+      docWindow.webContents.print({ silent: false }, () => resolve())
+    })
+  })
+}
+
 function registerIpcHandlers(): void {
   ipcMain.handle('dialog:openFile', async (_event, moduleName: keyof typeof MODULE_FILTERS) => {
     const result = await dialog.showOpenDialog({
@@ -88,6 +139,16 @@ function registerIpcHandlers(): void {
     return true
   })
 
+  ipcMain.handle('fs:stat', async (_event, filePath: string) => {
+    const fs = await import('fs/promises')
+    try {
+      const stat = await fs.stat(filePath)
+      return { size: stat.size, mtimeMs: stat.mtimeMs }
+    } catch {
+      return null
+    }
+  })
+
   ipcMain.handle('app:getVersion', () => {
     return app.getVersion()
   })
@@ -98,20 +159,51 @@ function registerIpcHandlers(): void {
     }
   })
 
+  ipcMain.handle('shell:showItemInFolder', (_event, filePath: string) => {
+    if (typeof filePath === 'string' && filePath) {
+      shell.showItemInFolder(filePath)
+    }
+  })
+
+  ipcMain.handle('print:document', (_event, html: string) => {
+    return printHtml(html)
+  })
+
+  ipcMain.handle('export:pdf', async (_event, html: string) => {
+    return exportHtmlToPdf(html)
+  })
+
   ipcMain.handle('recent:get', () => {
     return store.get('recents', [])
   })
 
-  ipcMain.handle(
-    'recent:add',
-    (_event, entry: Omit<RecentFile, 'openedAt'>) => {
-      const recents = store.get('recents', [])
-      const filtered = recents.filter((r) => r.path !== entry.path)
-      const updated: RecentFile[] = [{ ...entry, openedAt: Date.now() }, ...filtered].slice(0, 15)
-      store.set('recents', updated)
-      return updated
-    }
-  )
+  ipcMain.handle('recent:add', (_event, entry: Omit<RecentFile, 'openedAt' | 'favorite'>) => {
+    const recents = store.get('recents', [])
+    const existing = recents.find((r) => r.path === entry.path)
+    const filtered = recents.filter((r) => r.path !== entry.path)
+    const updated: RecentFile[] = [
+      { ...entry, openedAt: Date.now(), favorite: existing?.favorite ?? false },
+      ...filtered
+    ].slice(0, 15)
+    store.set('recents', updated)
+    return updated
+  })
+
+  ipcMain.handle('recent:toggleFavorite', (_event, path: string) => {
+    const recents = store.get('recents', [])
+    const updated = recents.map((r) => (r.path === path ? { ...r, favorite: !r.favorite } : r))
+    store.set('recents', updated)
+    return updated
+  })
+
+  ipcMain.handle('settings:get', () => {
+    return settingsStore.store
+  })
+
+  ipcMain.handle('settings:set', (_event, next: Partial<AppSettings>) => {
+    settingsStore.set({ ...settingsStore.store, ...next })
+    return settingsStore.store
+  })
 }
 
 app.whenReady().then(() => {

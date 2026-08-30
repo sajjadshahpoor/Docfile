@@ -4,16 +4,24 @@ interface StatusBarProps {
   editor: Editor | null
   zoom: number
   onZoomChange: (zoom: number) => void
+  showWordCount?: boolean
 }
 
-export default function StatusBar({ editor, zoom, onZoomChange }: StatusBarProps): JSX.Element {
+export default function StatusBar({
+  editor,
+  zoom,
+  onZoomChange,
+  showWordCount = true
+}: StatusBarProps): JSX.Element {
   const words = editor?.storage.characterCount?.words() ?? 0
   const characters = editor?.storage.characterCount?.characters() ?? 0
 
   return (
     <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-1 text-xs text-gray-500">
       <div>
-        {words} word{words === 1 ? '' : 's'} · {characters} character{characters === 1 ? '' : 's'}
+        {showWordCount
+          ? `${words} word${words === 1 ? '' : 's'} · ${characters} character${characters === 1 ? '' : 's'}`
+          : ''}
       </div>
       <div className="flex items-center gap-2">
         <button
