@@ -1,6 +1,6 @@
 {
   "name": "docfile",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Local, offline Office-style suite (Word/Excel/PowerPoint) for editing docx/xlsx/pptx files on disk.",
   "main": "./out/main/index.js",
   "author": "docfile",
@@ -32,6 +32,7 @@
     "@tiptap/starter-kit": "^2.9.1",
     "docx": "^9.1.0",
     "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.9",
     "mammoth": "^1.8.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -64,6 +65,11 @@
     "files": [
       "out/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "sajjadshahpoor",
+      "repo": "Docfile"
+    },
     "win": {
       "target": [
         {
@@ -84,7 +90,11 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName}-Setup-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${arch}.${ext}"
     }
   }
 }

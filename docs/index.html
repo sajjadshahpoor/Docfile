@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Docfile — a local, offline Office-style suite</title>
+<meta name="description" content="Docfile is a free, open-source desktop app for editing real .docx files, entirely offline. No cloud, no account, no upload." />
+<style>
+  :root {
+    --word-blue: #2b579a;
+    --ink: #1f2430;
+    --muted: #5b6474;
+    --bg: #f7f8fb;
+    --card: #ffffff;
+    --border: #e4e7ec;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  header.site {
+    padding: 20px 0;
+  }
+  header.site .wrap { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 6px;
+    background: var(--word-blue); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px;
+  }
+  nav.site-nav a {
+    text-decoration: none; color: var(--muted); font-size: 14px; margin-left: 24px;
+  }
+  nav.site-nav a:hover { color: var(--ink); }
+
+  .hero { padding: 64px 0 40px; text-align: center; }
+  .hero h1 { font-size: 42px; margin: 0 0 16px; letter-spacing: -0.02em; }
+  .hero p.lead { font-size: 18px; color: var(--muted); max-width: 560px; margin: 0 auto 32px; }
+
+  .downloads { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px; border-radius: 8px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--word-blue); color: white; }
+  .btn-primary:hover { background: #234a86; }
+  .btn-secondary { background: white; color: var(--ink); border-color: var(--border); }
+  .btn-secondary:hover { border-color: #c7cdd6; }
+  .fine-print { font-size: 13px; color: #8a93a3; }
+  .fine-print a { color: var(--word-blue); text-decoration: none; }
+  .fine-print a:hover { text-decoration: underline; }
+
+  .screenshot-wrap { padding: 24px 0 72px; }
+  .screenshot-wrap img {
+    width: 100%; max-width: 960px; display: block; margin: 0 auto;
+    border-radius: 10px; border: 1px solid var(--border);
+    box-shadow: 0 20px 50px -20px rgba(20, 30, 60, 0.25);
+  }
+
+  section.features { padding: 24px 0 72px; }
+  .features h2 { text-align: center; font-size: 26px; margin-bottom: 40px; }
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  }
+  @media (max-width: 800px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+  .feature-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 22px; text-align: left;
+  }
+  .feature-card .icon { font-size: 22px; margin-bottom: 10px; }
+  .feature-card h3 { font-size: 15px; margin: 0 0 6px; }
+  .feature-card p { font-size: 13.5px; color: var(--muted); margin: 0; }
+
+  section.roadmap { padding: 0 0 80px; }
+  .roadmap-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px 32px;
+  }
+  .roadmap-card h2 { font-size: 20px; margin: 0 0 20px; }
+  .roadmap-list { display: flex; flex-direction: column; gap: 14px; }
+  .roadmap-row { display: flex; align-items: center; gap: 12px; font-size: 14.5px; }
+  .status-pill {
+    font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .status-ready { background: #e5f4ea; color: #1e7d3c; }
+  .status-soon { background: #fdf1d8; color: #9a6a10; }
+
+  footer.site { padding: 32px 0 60px; text-align: center; color: var(--muted); font-size: 13px; }
+  footer.site a { color: var(--word-blue); text-decoration: none; }
+  footer.site a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <div class="brand">
+      <span class="brand-mark">D</span>
+      Docfile
+    </div>
+    <nav class="site-nav">
+      <a href="#features">Features</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/sajjadshahpoor/Docfile">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>Your documents. Your computer.<br />Nobody else's.</h1>
+    <p class="lead">
+      Docfile is a free, open-source desktop app for reading and writing real
+      <code>.docx</code> files — with a familiar ribbon interface — entirely offline.
+      No cloud, no account, no upload, ever.
+    </p>
+
+    <div class="downloads" id="download">
+      <a class="btn btn-primary" href="https://github.com/sajjadshahpoor/Docfile/releases/latest/download/Docfile-Setup-x64.exe">
+        ⬇ Download for Windows
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/sajjadshahpoor/Docfile/releases/latest/download/Docfile-Portable-x64.exe">
+        Portable version (no install)
+      </a>
+    </div>
+    <p class="fine-print">
+      Windows 10/11 · Free & open source ·
+      <a href="https://github.com/sajjadshahpoor/Docfile/releases">See all releases</a>
+    </p>
+  </div>
+</section>
+
+<div class="screenshot-wrap">
+  <div class="wrap">
+    <img src="screenshot.png" alt="Docfile Word editor showing a ribbon toolbar and a formatted document" />
+  </div>
+</div>
+
+<section class="features" id="features">
+  <div class="wrap">
+    <h2>Built like the office suite you already know</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🔒</div>
+        <h3>Fully offline</h3>
+        <p>Every file stays on your disk. Nothing is ever uploaded anywhere.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📄</div>
+        <h3>Real .docx files</h3>
+        <p>Open and save standard Word documents that work in Word, LibreOffice, and Google Docs.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎛️</div>
+        <h3>A ribbon you already know</h3>
+        <p>Home, Insert, Layout, and View tabs modeled directly on Microsoft Word's own layout.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🆓</div>
+        <h3>Free & open source</h3>
+        <p>No subscription, no license key. Read the code or contribute on GitHub.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="roadmap">
+  <div class="wrap">
+    <div class="roadmap-card">
+      <h2>What's in Docfile today</h2>
+      <div class="roadmap-list">
+        <div class="roadmap-row">
+          <span class="status-pill status-ready">Available</span>
+          Word — full ribbon editor, fonts, styles, tables, images, headers/footers, page setup
+        </div>
+        <div class="roadmap-row">
+          <span class="status-pill status-soon">Coming soon</span>
+          Excel — spreadsheet editing for .xlsx files
+        </div>
+        <div class="roadmap-row">
+          <span class="status-pill status-soon">Coming soon</span>
+          PowerPoint — slide editing for .pptx files
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    Docfile is open source on <a href="https://github.com/sajjadshahpoor/Docfile">GitHub</a>.
+  </div>
+</footer>
+
+</body>
+</html>

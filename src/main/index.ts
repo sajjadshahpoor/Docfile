@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import Store from 'electron-store'
+import { initAutoUpdater } from './updater'
 
 interface RecentFile {
   path: string
@@ -47,6 +48,10 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  if (app.isPackaged) {
+    initAutoUpdater(mainWindow)
+  }
 }
 
 function registerIpcHandlers(): void {
@@ -81,6 +86,10 @@ function registerIpcHandlers(): void {
     const fs = await import('fs/promises')
     await fs.writeFile(filePath, Buffer.from(data))
     return true
+  })
+
+  ipcMain.handle('app:getVersion', () => {
+    return app.getVersion()
   })
 
   ipcMain.handle('recent:get', () => {

@@ -2,14 +2,10 @@ import { useEffect } from 'react'
 import { useAppStore } from './store/appStore'
 import Launcher from './modules/launcher/Launcher'
 import WordEditor from './modules/word/WordEditor'
+import UpdateBanner from './components/UpdateBanner'
 
-function App(): JSX.Element {
+function ActiveScreen(): JSX.Element {
   const view = useAppStore((s) => s.view)
-  const refreshRecents = useAppStore((s) => s.refreshRecents)
-
-  useEffect(() => {
-    refreshRecents()
-  }, [refreshRecents])
 
   switch (view.screen) {
     case 'word':
@@ -21,6 +17,21 @@ function App(): JSX.Element {
     default:
       return <Launcher />
   }
+}
+
+function App(): JSX.Element {
+  const refreshRecents = useAppStore((s) => s.refreshRecents)
+
+  useEffect(() => {
+    refreshRecents()
+  }, [refreshRecents])
+
+  return (
+    <>
+      <ActiveScreen />
+      <UpdateBanner />
+    </>
+  )
 }
 
 export default App
