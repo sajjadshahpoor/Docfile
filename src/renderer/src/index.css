@@ -28,11 +28,51 @@ body {
 
 .docfile-editor .ProseMirror {
   outline: none;
-  min-height: 1000px;
-  padding: 96px 72px;
+  min-height: var(--page-content-min-height, 1056px);
+  padding: var(--page-pad-top, 96px) var(--page-pad-right, 72px) var(--page-pad-bottom, 96px)
+    var(--page-pad-left, 72px);
   font-size: 15px;
   line-height: 1.5;
   color: #1f1f1f;
+  column-count: var(--page-columns, 1);
+  column-gap: 36px;
+}
+
+.docfile-hyphenate .ProseMirror {
+  hyphens: auto;
+}
+
+/* Line numbers — approximate Word's "Continuous" numbering by numbering
+   paragraphs (not wrapped lines) in the left margin gutter. */
+.docfile-line-numbers .ProseMirror {
+  counter-reset: docfile-line;
+}
+
+.docfile-line-numbers .ProseMirror > p,
+.docfile-line-numbers .ProseMirror > h1,
+.docfile-line-numbers .ProseMirror > h2,
+.docfile-line-numbers .ProseMirror > h3,
+.docfile-line-numbers .ProseMirror > h4,
+.docfile-line-numbers .ProseMirror > h5,
+.docfile-line-numbers .ProseMirror > h6 {
+  position: relative;
+  counter-increment: docfile-line;
+}
+
+.docfile-line-numbers .ProseMirror > p::before,
+.docfile-line-numbers .ProseMirror > h1::before,
+.docfile-line-numbers .ProseMirror > h2::before,
+.docfile-line-numbers .ProseMirror > h3::before,
+.docfile-line-numbers .ProseMirror > h4::before,
+.docfile-line-numbers .ProseMirror > h5::before,
+.docfile-line-numbers .ProseMirror > h6::before {
+  content: counter(docfile-line);
+  position: absolute;
+  left: -32px;
+  width: 24px;
+  text-align: right;
+  font-size: 10px;
+  color: #9aa4b2;
 }
 
 .docfile-editor .ProseMirror p {

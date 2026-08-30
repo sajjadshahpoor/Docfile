@@ -12,7 +12,8 @@ function currentBlockAttrs(editor: Editor): Record<string, unknown> {
 export default function ParagraphDialog({ editor, onClose }: ParagraphDialogProps): JSX.Element {
   const attrs = currentBlockAttrs(editor)
   const align = (attrs.textAlign as string) ?? 'left'
-  const indentLevel = Number(attrs.indentLevel ?? 0)
+  const indentLeft = Number(attrs.indentLeft ?? 0)
+  const indentRight = Number(attrs.indentRight ?? 0)
   const firstLineIndent = Number(attrs.firstLineIndent ?? 0)
   const spacingBefore = Number(attrs.spacingBefore ?? 0)
   const spacingAfter = Number(attrs.spacingAfter ?? 0)
@@ -41,15 +42,32 @@ export default function ParagraphDialog({ editor, onClose }: ParagraphDialogProp
         </div>
 
         <div className="mb-1 text-xs font-medium text-gray-600">Indentation</div>
-        <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="mb-4 grid grid-cols-3 gap-3">
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Indent level</label>
+            <label className="mb-1 block text-xs text-gray-500">Left (in.)</label>
             <input
               type="number"
               min={0}
-              max={8}
-              value={indentLevel}
-              onChange={(e) => editor.chain().focus().setIndentLevel(Number(e.target.value)).run()}
+              max={6}
+              step={0.1}
+              value={indentLeft}
+              onChange={(e) =>
+                editor.chain().focus().setIndentLeft(parseFloat(e.target.value) || 0).run()
+              }
+              className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">Right (in.)</label>
+            <input
+              type="number"
+              min={0}
+              max={6}
+              step={0.1}
+              value={indentRight}
+              onChange={(e) =>
+                editor.chain().focus().setIndentRight(parseFloat(e.target.value) || 0).run()
+              }
               className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
             />
           </div>

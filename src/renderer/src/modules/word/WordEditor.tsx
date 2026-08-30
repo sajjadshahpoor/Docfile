@@ -14,7 +14,7 @@ import TableHeader from '@tiptap/extension-table-header'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import CharacterCount from '@tiptap/extension-character-count'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import Ribbon from './Ribbon'
 import FindReplace from './FindReplace'
 import StatusBar from './StatusBar'
@@ -22,6 +22,7 @@ import Backstage from './backstage/Backstage'
 import UnsavedChangesDialog from './UnsavedChangesDialog'
 import { importDocx } from './docxImport'
 import { exportDocx } from './docxExport'
+import { importPageSetup } from './pageSetupImport'
 import { useAppStore } from '../../store/appStore'
 import { FontSize } from './extensions/fontSize'
 import { PageBreak } from './extensions/pageBreak'
@@ -93,6 +94,9 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       ParagraphFormatting
     ],
     content: '<p></p>',
+    editorProps: {
+      attributes: { lang: 'en-US' }
+    },
     onUpdate: () => setIsDirty(true)
   })
 
@@ -113,9 +117,13 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
     setFileMenuOpen(false)
     try {
       const data = await window.docfile.readFile(path)
-      const result = await importDocx(data)
+      const [result, loadedPageSetup] = await Promise.all([
+        importDocx(data),
+        importPageSetup(data)
+      ])
       editor.commands.setContent(result.html)
       setWarnings(result.warnings)
+      setPageSetup(loadedPageSetup)
       setCurrentPath(path)
       setIsDirty(false)
     } catch (err) {
@@ -205,6 +213,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       setCurrentPath(null)
       setWarnings([])
       setError(null)
+      setPageSetup(DEFAULT_PAGE_SETUP)
+      setHeaderFooter(DEFAULT_HEADER_FOOTER)
       editor.commands.setContent(template.html)
       if (settings.defaultFont) {
         editor.chain().focus().selectAll().setFontFamily(settings.defaultFont).run()
@@ -332,16 +342,22 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
                 />
               </div>
             )}
-            <div className="docfile-page">
-              <EditorContent
-                editor={editor}
-                style={{
-                  paddingTop: dimensions.paddingTopPx,
-                  paddingBottom: dimensions.paddingBottomPx,
-                  paddingLeft: dimensions.paddingLeftPx,
-                  paddingRight: dimensions.paddingRightPx
-                }}
-              />
+            <div
+              className={`docfile-page ${pageSetup.lineNumbering === 'continuous' ? 'docfile-line-numbers' : ''} ${
+                pageSetup.hyphenation === 'auto' ? 'docfile-hyphenate' : ''
+              }`}
+              style={
+                {
+                  '--page-pad-top': `${dimensions.paddingTopPx}px`,
+                  '--page-pad-bottom': `${dimensions.paddingBottomPx}px`,
+                  '--page-pad-left': `${dimensions.paddingLeftPx}px`,
+                  '--page-pad-right': `${dimensions.paddingRightPx}px`,
+                  '--page-content-min-height': `${dimensions.heightPx}px`,
+                  '--page-columns': pageSetup.columns
+                } as CSSProperties
+              }
+            >
+              <EditorContent editor={editor} />
             </div>
             {headerFooter.showFooter && (
               <div className="docfile-page mt-2 px-4 py-2 text-sm text-gray-500">

@@ -16,13 +16,14 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  LineNumberRestartFormat,
   UnderlineType,
   WidthType,
   type IBordersOptions,
   type ISectionOptions
 } from 'docx'
 import {
-  MARGIN_TWIPS,
+  getMarginTwips,
   PAGE_SIZE_TWIPS,
   DEFAULT_PAGE_SETUP,
   type PageSetup
@@ -71,8 +72,6 @@ const HIGHLIGHT_MAP: Record<string, string> = {
   lightgray: 'lightGray',
   black: 'black'
 }
-
-const INDENT_STEP_TWIPS = 720 // 0.5in per level, Word's standard indent step
 
 const UNDERLINE_STYLE_MAP: Record<string, (typeof UnderlineType)[keyof typeof UnderlineType]> = {
   solid: UnderlineType.SINGLE,
@@ -224,7 +223,7 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
 
 function buildSpacingAndIndent(attrs: Record<string, unknown> | undefined): {
   spacing?: { line?: number; lineRule?: (typeof LineRuleType)[keyof typeof LineRuleType]; before?: number; after?: number }
-  indent?: { left: number }
+  indent?: { left?: number; right?: number; firstLine?: number; hanging?: number }
 } {
   const result: ReturnType<typeof buildSpacingAndIndent> = {}
 
@@ -241,11 +240,13 @@ function buildSpacingAndIndent(attrs: Record<string, unknown> | undefined): {
     }
   }
 
-  const indentLevel = Number(attrs?.indentLevel ?? 0)
+  const indentLeft = Number(attrs?.indentLeft ?? 0)
+  const indentRight = Number(attrs?.indentRight ?? 0)
   const firstLineIndent = Number(attrs?.firstLineIndent ?? 0)
-  if (indentLevel > 0 || firstLineIndent) {
+  if (indentLeft > 0 || indentRight > 0 || firstLineIndent) {
     result.indent = {
-      left: indentLevel * INDENT_STEP_TWIPS,
+      ...(indentLeft > 0 ? { left: Math.round(indentLeft * 1440) } : {}),
+      ...(indentRight > 0 ? { right: Math.round(indentRight * 1440) } : {}),
       ...(firstLineIndent > 0
         ? { firstLine: Math.round(firstLineIndent * 1440) }
         : firstLineIndent < 0
@@ -393,7 +394,7 @@ export async function exportDocx(
     children.push(...(await buildBlock(node)))
   }
 
-  const margins = MARGIN_TWIPS[pageSetup.marginPreset]
+  const margins = getMarginTwips(pageSetup)
   const size = PAGE_SIZE_TWIPS[pageSetup.size]
   const isLandscape = pageSetup.orientation === 'landscape'
 
@@ -426,9 +427,13 @@ export async function exportDocx(
   const section: ISectionOptions = {
     properties: {
       page: {
+        // docx's own Section builder swaps width/height internally based on
+        // `orientation`, so these must stay the portrait-standard values —
+        // pre-swapping here would double-swap and silently re-emit a
+        // portrait-shaped page with only the orientation flag set to landscape.
         size: {
-          width: isLandscape ? size.height : size.width,
-          height: isLandscape ? size.width : size.height,
+          width: size.width,
+          height: size.height,
           orientation: isLandscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT
         },
         margin: {
@@ -437,7 +442,15 @@ export async function exportDocx(
           left: margins.left,
           right: margins.right
         }
-      }
+      },
+      column:
+        pageSetup.columns > 1
+          ? { count: pageSetup.columns, space: 720, equalWidth: true }
+          : undefined,
+      lineNumbers:
+        pageSetup.lineNumbering === 'continuous'
+          ? { countBy: 1, restart: LineNumberRestartFormat.CONTINUOUS, distance: 360 }
+          : undefined
     },
     headers,
     footers,
@@ -445,6 +458,7 @@ export async function exportDocx(
   }
 
   const doc = new Document({
+    hyphenation: { autoHyphenation: pageSetup.hyphenation === 'auto' },
     numbering: {
       config: [
         {

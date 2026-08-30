@@ -1,4 +1,4 @@
-import { PAGE_SIZE_TWIPS, MARGIN_TWIPS, type PageSetup } from './pageSetup'
+import { PAGE_SIZE_TWIPS, getMarginTwips, type PageSetup } from './pageSetup'
 
 const TWIPS_PER_INCH = 1440
 
@@ -11,13 +11,13 @@ function toInches(twips: number): number {
 // process — that window loads a bare data: URL and can't reach our CSS bundle.
 export function buildPrintableHtml(contentHtml: string, pageSetup: PageSetup): string {
   const size = PAGE_SIZE_TWIPS[pageSetup.size]
-  const margins = MARGIN_TWIPS[pageSetup.marginPreset]
+  const margins = getMarginTwips(pageSetup)
   const isLandscape = pageSetup.orientation === 'landscape'
   const pageWidthIn = toInches(isLandscape ? size.height : size.width)
   const pageHeightIn = toInches(isLandscape ? size.width : size.height)
 
   return `<!doctype html>
-<html>
+<html lang="en-US">
 <head>
 <meta charset="UTF-8" />
 <style>
@@ -32,6 +32,9 @@ export function buildPrintableHtml(contentHtml: string, pageSetup: PageSetup): s
     font-size: 15px;
     line-height: 1.5;
     color: #1f1f1f;
+    column-count: ${pageSetup.columns};
+    column-gap: 36px;
+    ${pageSetup.hyphenation === 'auto' ? 'hyphens: auto;' : ''}
   }
   p { margin: 0 0 8px 0; }
   h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.3; margin: 20px 0 8px 0; }
