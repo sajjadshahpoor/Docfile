@@ -1,9 +1,15 @@
 import {
   AlignmentType,
   Document,
+  Footer,
+  Header,
   HeadingLevel,
   ImageRun,
+  LineRuleType,
   Packer,
+  PageBreak as DocxPageBreak,
+  PageNumber,
+  PageOrientation,
   Paragraph,
   Table,
   TableCell,
@@ -11,9 +17,15 @@ import {
   TextRun,
   UnderlineType,
   WidthType,
-  convertInchesToTwip,
   type ISectionOptions
 } from 'docx'
+import {
+  MARGIN_TWIPS,
+  PAGE_SIZE_TWIPS,
+  DEFAULT_PAGE_SETUP,
+  type PageSetup
+} from './pageSetup'
+import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
 
 // Minimal shape of a ProseMirror/TipTap JSON node — TipTap doesn't export a
 // public node-JSON type, so we model just the fields this converter reads.
@@ -57,6 +69,8 @@ const HIGHLIGHT_MAP: Record<string, string> = {
   lightgray: 'lightGray',
   black: 'black'
 }
+
+const INDENT_STEP_TWIPS = 720 // 0.5in per level, Word's standard indent step
 
 function normalizeColor(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
@@ -118,6 +132,12 @@ async function buildImageRun(node: TNode): Promise<ImageRun | null> {
   })
 }
 
+function fontSizeToHalfPoints(value: unknown): number | undefined {
+  if (typeof value !== 'string') return undefined
+  const pt = parseFloat(value)
+  return Number.isFinite(pt) ? Math.round(pt * 2) : undefined
+}
+
 async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | ImageRun)[]> {
   if (!nodes) return []
   const runs: (TextRun | ImageRun)[] = []
@@ -136,6 +156,8 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
     const isUnderline = marks.some((m) => m.type === 'underline')
     const isStrike = marks.some((m) => m.type === 'strike')
     const isLink = marks.find((m) => m.type === 'link')
+    const isSubscript = marks.some((m) => m.type === 'subscript')
+    const isSuperscript = marks.some((m) => m.type === 'superscript')
     const textStyleMark = marks.find((m) => m.type === 'textStyle')
     const highlightMark = marks.find((m) => m.type === 'highlight')
 
@@ -144,6 +166,7 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
       typeof textStyleMark?.attrs?.fontFamily === 'string'
         ? (textStyleMark.attrs.fontFamily as string)
         : undefined
+    const size = fontSizeToHalfPoints(textStyleMark?.attrs?.fontSize)
     const highlightColor =
       typeof highlightMark?.attrs?.color === 'string'
         ? HIGHLIGHT_MAP[(highlightMark.attrs.color as string).toLowerCase()]
@@ -156,8 +179,11 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
         italics: isItalic,
         underline: isUnderline ? { type: UnderlineType.SINGLE } : undefined,
         strike: isStrike,
+        subScript: isSubscript,
+        superScript: isSuperscript,
         color,
         font: fontFamily,
+        size,
         highlight: highlightColor as never,
         style: isLink ? 'Hyperlink' : undefined
       })
@@ -167,9 +193,37 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
   return runs
 }
 
+function buildSpacingAndIndent(attrs: Record<string, unknown> | undefined): {
+  spacing?: { line?: number; lineRule?: (typeof LineRuleType)[keyof typeof LineRuleType]; before?: number; after?: number }
+  indent?: { left: number }
+} {
+  const result: ReturnType<typeof buildSpacingAndIndent> = {}
+
+  const lineHeight = attrs?.lineHeight
+  const spacingBefore = attrs?.spacingBefore
+  const spacingAfter = attrs?.spacingAfter
+  if (lineHeight || spacingBefore || spacingAfter) {
+    result.spacing = {
+      ...(lineHeight
+        ? { line: Math.round(240 * parseFloat(String(lineHeight))), lineRule: LineRuleType.AUTO }
+        : {}),
+      ...(spacingBefore ? { before: Math.round(Number(spacingBefore) * 20) } : {}),
+      ...(spacingAfter ? { after: Math.round(Number(spacingAfter) * 20) } : {})
+    }
+  }
+
+  const indentLevel = Number(attrs?.indentLevel ?? 0)
+  if (indentLevel > 0) {
+    result.indent = { left: indentLevel * INDENT_STEP_TWIPS }
+  }
+
+  return result
+}
+
 async function buildParagraph(node: TNode, listLevel?: { ordered: boolean; level: number }): Promise<Paragraph> {
   const align = ALIGNMENT_MAP[(node.attrs?.textAlign as string) ?? ''] ?? undefined
   const children = await buildTextRuns(node.content)
+  const { spacing, indent } = buildSpacingAndIndent(node.attrs)
 
   const heading =
     node.type === 'heading'
@@ -181,6 +235,8 @@ async function buildParagraph(node: TNode, listLevel?: { ordered: boolean; level
       children,
       alignment: align,
       heading,
+      spacing,
+      indent,
       numbering: { reference: 'docfile-numbered-list', level: listLevel.level }
     })
   }
@@ -190,11 +246,13 @@ async function buildParagraph(node: TNode, listLevel?: { ordered: boolean; level
       children,
       alignment: align,
       heading,
+      spacing,
+      indent,
       bullet: { level: listLevel.level }
     })
   }
 
-  return new Paragraph({ children, alignment: align, heading })
+  return new Paragraph({ children, alignment: align, heading, spacing, indent })
 }
 
 async function buildListItems(
@@ -250,12 +308,18 @@ async function buildBlock(node: TNode): Promise<(Paragraph | Table)[]> {
       return buildListItems(node, true, 0)
     case 'table':
       return [await buildTable(node)]
+    case 'pageBreak':
+      return [new Paragraph({ children: [new DocxPageBreak()] })]
     default:
       return []
   }
 }
 
-export async function exportDocx(docJson: unknown): Promise<Uint8Array> {
+export async function exportDocx(
+  docJson: unknown,
+  pageSetup: PageSetup = DEFAULT_PAGE_SETUP,
+  headerFooter: HeaderFooterState = DEFAULT_HEADER_FOOTER
+): Promise<Uint8Array> {
   const root = docJson as TNode
   const children: (Paragraph | Table)[] = []
 
@@ -263,17 +327,54 @@ export async function exportDocx(docJson: unknown): Promise<Uint8Array> {
     children.push(...(await buildBlock(node)))
   }
 
+  const margins = MARGIN_TWIPS[pageSetup.marginPreset]
+  const size = PAGE_SIZE_TWIPS[pageSetup.size]
+  const isLandscape = pageSetup.orientation === 'landscape'
+
+  const headers = headerFooter.showHeader
+    ? {
+        default: new Header({
+          children: [new Paragraph({ children: [new TextRun(headerFooter.headerText)] })]
+        })
+      }
+    : undefined
+
+  const footers = headerFooter.showFooter
+    ? {
+        default: new Footer({
+          children: [
+            new Paragraph({ children: [new TextRun(headerFooter.footerText)] }),
+            ...(headerFooter.includePageNumber
+              ? [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [new TextRun({ children: ['Page ', PageNumber.CURRENT] })]
+                  })
+                ]
+              : [])
+          ]
+        })
+      }
+    : undefined
+
   const section: ISectionOptions = {
     properties: {
       page: {
+        size: {
+          width: isLandscape ? size.height : size.width,
+          height: isLandscape ? size.width : size.height,
+          orientation: isLandscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT
+        },
         margin: {
-          top: convertInchesToTwip(1),
-          bottom: convertInchesToTwip(1),
-          left: convertInchesToTwip(1),
-          right: convertInchesToTwip(1)
+          top: margins.top,
+          bottom: margins.bottom,
+          left: margins.left,
+          right: margins.right
         }
       }
     },
+    headers,
+    footers,
     children: children.length ? children : [new Paragraph({})]
   }
 

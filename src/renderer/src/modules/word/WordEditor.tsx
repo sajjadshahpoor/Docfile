@@ -12,11 +12,21 @@ import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
+import Subscript from '@tiptap/extension-subscript'
+import Superscript from '@tiptap/extension-superscript'
+import CharacterCount from '@tiptap/extension-character-count'
 import { useEffect, useRef, useState } from 'react'
-import Toolbar from './Toolbar'
+import Ribbon from './Ribbon'
+import FindReplace from './FindReplace'
+import StatusBar from './StatusBar'
 import { importDocx } from './docxImport'
 import { exportDocx } from './docxExport'
 import { useAppStore } from '../../store/appStore'
+import { FontSize } from './extensions/fontSize'
+import { PageBreak } from './extensions/pageBreak'
+import { ParagraphFormatting } from './extensions/paragraphFormatting'
+import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './pageSetup'
+import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
 
 interface WordEditorProps {
   filePath: string | null
@@ -38,6 +48,10 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const [isSaving, setIsSaving] = useState(false)
   const [warnings, setWarnings] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [pageSetup, setPageSetup] = useState<PageSetup>(DEFAULT_PAGE_SETUP)
+  const [headerFooter, setHeaderFooter] = useState<HeaderFooterState>(DEFAULT_HEADER_FOOTER)
+  const [zoom, setZoom] = useState(100)
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false)
   const loadedPathRef = useRef<string | null>(null)
 
   const editor = useEditor({
@@ -46,6 +60,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       Underline,
       TextStyle,
       FontFamily,
+      FontSize,
       Color,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -54,7 +69,12 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
-      TableCell
+      TableCell,
+      Subscript,
+      Superscript,
+      CharacterCount,
+      PageBreak,
+      ParagraphFormatting
     ],
     content: '<p></p>',
     onUpdate: () => setIsDirty(true)
@@ -94,7 +114,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         targetPath = picked
       }
 
-      const bytes = await exportDocx(editor.getJSON())
+      const bytes = await exportDocx(editor.getJSON(), pageSetup, headerFooter)
       await window.docfile.writeFile(targetPath, bytes)
       setCurrentPath(targetPath)
       setIsDirty(false)
@@ -112,6 +132,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
     }
   }
 
+  const dimensions = getPreviewDimensions(pageSetup)
+
   return (
     <div className="flex h-full flex-col bg-gray-100">
       <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2">
@@ -121,6 +143,20 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
           title="Back to launcher"
         >
           ← Home
+        </button>
+        <button
+          title="Undo"
+          onClick={() => editor?.chain().focus().undo().run()}
+          className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+        >
+          ↶
+        </button>
+        <button
+          title="Redo"
+          onClick={() => editor?.chain().focus().redo().run()}
+          className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+        >
+          ↷
         </button>
         <div className="flex-1">
           <div className="text-sm font-medium text-gray-800">
@@ -144,7 +180,20 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         </button>
       </div>
 
-      <Toolbar editor={editor} />
+      <Ribbon
+        editor={editor}
+        pageSetup={pageSetup}
+        onPageSetupChange={setPageSetup}
+        headerFooter={headerFooter}
+        onHeaderFooterChange={setHeaderFooter}
+        zoom={zoom}
+        onZoomChange={setZoom}
+        onToggleFindReplace={() => setFindReplaceOpen((v) => !v)}
+      />
+
+      {findReplaceOpen && editor && (
+        <FindReplace editor={editor} onClose={() => setFindReplaceOpen(false)} />
+      )}
 
       {error && (
         <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
@@ -162,13 +211,53 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         {isLoading ? (
           <div className="text-center text-sm text-gray-500">Opening document…</div>
         ) : (
-          <div className="docfile-editor mx-auto w-[850px] max-w-full">
+          <div
+            className="docfile-editor mx-auto max-w-full origin-top"
+            style={{ width: dimensions.widthPx, transform: `scale(${zoom / 100})` }}
+          >
+            {headerFooter.showHeader && (
+              <div className="docfile-page mb-2 px-4 py-2 text-sm text-gray-500">
+                <input
+                  value={headerFooter.headerText}
+                  onChange={(e) =>
+                    setHeaderFooter({ ...headerFooter, headerText: e.target.value })
+                  }
+                  placeholder="Header text"
+                  className="w-full border-none bg-transparent outline-none placeholder:text-gray-300"
+                />
+              </div>
+            )}
             <div className="docfile-page">
-              <EditorContent editor={editor} />
+              <EditorContent
+                editor={editor}
+                style={{
+                  paddingTop: dimensions.paddingTopPx,
+                  paddingBottom: dimensions.paddingBottomPx,
+                  paddingLeft: dimensions.paddingLeftPx,
+                  paddingRight: dimensions.paddingRightPx
+                }}
+              />
             </div>
+            {headerFooter.showFooter && (
+              <div className="docfile-page mt-2 px-4 py-2 text-sm text-gray-500">
+                <input
+                  value={headerFooter.footerText}
+                  onChange={(e) =>
+                    setHeaderFooter({ ...headerFooter, footerText: e.target.value })
+                  }
+                  placeholder="Footer text"
+                  className="w-full border-none bg-transparent outline-none placeholder:text-gray-300"
+                />
+                {headerFooter.includePageNumber && (
+                  <div className="mt-1 text-center text-xs text-gray-400">Page #</div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      <StatusBar editor={editor} zoom={zoom} onZoomChange={setZoom} />
     </div>
   )
 }
