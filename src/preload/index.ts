@@ -36,6 +36,8 @@ const api = {
 
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
 
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke('shell:openExternal', url),
+
   checkForUpdates: (): Promise<void> => ipcRenderer.invoke('update:check'),
 
   restartAndInstallUpdate: (): Promise<void> => ipcRenderer.invoke('update:restartAndInstall'),

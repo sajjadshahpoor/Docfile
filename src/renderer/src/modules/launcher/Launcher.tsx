@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useAppStore } from '../../store/appStore'
 import type { ModuleName } from '../../store/appStore'
+import AboutModal from '../../components/AboutModal'
 
 const MODULE_META: Record<
   ModuleName,
@@ -57,6 +59,7 @@ function formatDate(ts: number): string {
 export default function Launcher(): JSX.Element {
   const recents = useAppStore((s) => s.recents)
   const openModule = useAppStore((s) => s.openModule)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   const openExistingFile = async (moduleName: ModuleName): Promise<void> => {
     const filePath = await window.docfile.openFile(moduleName)
@@ -140,6 +143,17 @@ export default function Launcher(): JSX.Element {
           )}
         </section>
       </main>
+
+      <footer className="mx-auto max-w-5xl px-8 pb-8 text-center">
+        <button
+          onClick={() => setAboutOpen(true)}
+          className="text-xs text-gray-400 hover:text-gray-600 hover:underline"
+        >
+          About Docfile
+        </button>
+      </footer>
+
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
     </div>
   )
 }

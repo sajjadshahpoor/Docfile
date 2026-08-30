@@ -92,6 +92,12 @@ function registerIpcHandlers(): void {
     return app.getVersion()
   })
 
+  ipcMain.handle('shell:openExternal', (_event, url: string) => {
+    if (typeof url === 'string' && /^https:\/\//.test(url)) {
+      shell.openExternal(url)
+    }
+  })
+
   ipcMain.handle('recent:get', () => {
     return store.get('recents', [])
   })
