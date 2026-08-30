@@ -1,5 +1,6 @@
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   Footer,
   Header,
@@ -17,6 +18,7 @@ import {
   TextRun,
   UnderlineType,
   WidthType,
+  type IBordersOptions,
   type ISectionOptions
 } from 'docx'
 import {
@@ -71,6 +73,22 @@ const HIGHLIGHT_MAP: Record<string, string> = {
 }
 
 const INDENT_STEP_TWIPS = 720 // 0.5in per level, Word's standard indent step
+
+const UNDERLINE_STYLE_MAP: Record<string, (typeof UnderlineType)[keyof typeof UnderlineType]> = {
+  solid: UnderlineType.SINGLE,
+  double: UnderlineType.DOUBLE,
+  dotted: UnderlineType.DOTTED,
+  dashed: UnderlineType.DASH,
+  wavy: UnderlineType.WAVE
+}
+
+function characterSpacingToDxa(value: unknown): number | undefined {
+  // letter-spacing in px (see extensions/characterSpacing.ts) -> twentieths of a point.
+  if (typeof value !== 'string') return undefined
+  const px = parseFloat(value)
+  if (!Number.isFinite(px)) return undefined
+  return Math.round(px * 15) // 1px ≈ 0.75pt ≈ 15 dxa at 96dpi
+}
 
 function normalizeColor(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
@@ -153,8 +171,8 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
     const marks = node.marks ?? []
     const isBold = marks.some((m) => m.type === 'bold')
     const isItalic = marks.some((m) => m.type === 'italic')
-    const isUnderline = marks.some((m) => m.type === 'underline')
-    const isStrike = marks.some((m) => m.type === 'strike')
+    const underlineMark = marks.find((m) => m.type === 'underline')
+    const strikeMark = marks.find((m) => m.type === 'strike')
     const isLink = marks.find((m) => m.type === 'link')
     const isSubscript = marks.some((m) => m.type === 'subscript')
     const isSuperscript = marks.some((m) => m.type === 'superscript')
@@ -172,18 +190,29 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
         ? HIGHLIGHT_MAP[(highlightMark.attrs.color as string).toLowerCase()]
         : undefined
 
+    const underlineType = underlineMark
+      ? UNDERLINE_STYLE_MAP[(underlineMark.attrs?.underlineStyle as string) ?? 'solid'] ?? UnderlineType.SINGLE
+      : undefined
+    const underlineColor = normalizeColor(underlineMark?.attrs?.underlineColor)
+    const isDoubleStrike = !!strikeMark?.attrs?.double
+    const characterSpacing = characterSpacingToDxa(textStyleMark?.attrs?.characterSpacing)
+
     runs.push(
       new TextRun({
         text: node.text,
         bold: isBold,
         italics: isItalic,
-        underline: isUnderline ? { type: UnderlineType.SINGLE } : undefined,
-        strike: isStrike,
+        underline: underlineMark ? { type: underlineType, color: underlineColor } : undefined,
+        strike: !!strikeMark && !isDoubleStrike,
+        doubleStrike: isDoubleStrike,
         subScript: isSubscript,
         superScript: isSuperscript,
         color,
         font: fontFamily,
         size,
+        smallCaps: !!textStyleMark?.attrs?.smallCaps,
+        allCaps: !!textStyleMark?.attrs?.allCaps,
+        characterSpacing,
         highlight: highlightColor as never,
         style: isLink ? 'Hyperlink' : undefined
       })
@@ -213,8 +242,40 @@ function buildSpacingAndIndent(attrs: Record<string, unknown> | undefined): {
   }
 
   const indentLevel = Number(attrs?.indentLevel ?? 0)
-  if (indentLevel > 0) {
-    result.indent = { left: indentLevel * INDENT_STEP_TWIPS }
+  const firstLineIndent = Number(attrs?.firstLineIndent ?? 0)
+  if (indentLevel > 0 || firstLineIndent) {
+    result.indent = {
+      left: indentLevel * INDENT_STEP_TWIPS,
+      ...(firstLineIndent > 0
+        ? { firstLine: Math.round(firstLineIndent * 1440) }
+        : firstLineIndent < 0
+          ? { hanging: Math.round(Math.abs(firstLineIndent) * 1440) }
+          : {})
+    }
+  }
+
+  return result
+}
+
+function buildShadingAndBorder(attrs: Record<string, unknown> | undefined): {
+  shading?: { fill: string }
+  border?: IBordersOptions
+} {
+  const result: ReturnType<typeof buildShadingAndBorder> = {}
+
+  const shadingColor = normalizeColor(attrs?.shading)
+  if (shadingColor) result.shading = { fill: shadingColor }
+
+  const border = attrs?.border as string | undefined
+  if (border && border !== 'none') {
+    const line = { style: BorderStyle.SINGLE, size: 6, color: '1F1F1F' }
+    if (border === 'all') {
+      result.border = { top: line, bottom: line, left: line, right: line }
+    } else if (border === 'bottom') {
+      result.border = { bottom: line }
+    } else if (border === 'top') {
+      result.border = { top: line }
+    }
   }
 
   return result
@@ -224,6 +285,7 @@ async function buildParagraph(node: TNode, listLevel?: { ordered: boolean; level
   const align = ALIGNMENT_MAP[(node.attrs?.textAlign as string) ?? ''] ?? undefined
   const children = await buildTextRuns(node.content)
   const { spacing, indent } = buildSpacingAndIndent(node.attrs)
+  const { shading, border } = buildShadingAndBorder(node.attrs)
 
   const heading =
     node.type === 'heading'
@@ -237,6 +299,8 @@ async function buildParagraph(node: TNode, listLevel?: { ordered: boolean; level
       heading,
       spacing,
       indent,
+      shading,
+      border,
       numbering: { reference: 'docfile-numbered-list', level: listLevel.level }
     })
   }
@@ -248,11 +312,13 @@ async function buildParagraph(node: TNode, listLevel?: { ordered: boolean; level
       heading,
       spacing,
       indent,
+      shading,
+      border,
       bullet: { level: listLevel.level }
     })
   }
 
-  return new Paragraph({ children, alignment: align, heading, spacing, indent })
+  return new Paragraph({ children, alignment: align, heading, spacing, indent, shading, border })
 }
 
 async function buildListItems(

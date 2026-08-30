@@ -12,6 +12,8 @@ export interface ParagraphFormattingOptions {
   types: string[]
 }
 
+export type ParagraphBorder = 'none' | 'bottom' | 'top' | 'all'
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     paragraphFormatting: {
@@ -21,6 +23,9 @@ declare module '@tiptap/core' {
       increaseIndent: () => ReturnType
       decreaseIndent: () => ReturnType
       setParagraphSpacing: (before: number | null, after: number | null) => ReturnType
+      setShading: (color: string | null) => ReturnType
+      setParagraphBorder: (border: ParagraphBorder) => ReturnType
+      setFirstLineIndent: (inches: number | null) => ReturnType
     }
   }
 }
@@ -73,6 +78,37 @@ export const ParagraphFormatting = Extension.create<ParagraphFormattingOptions>(
             renderHTML: (attributes) => {
               if (!attributes.spacingAfter) return {}
               return { style: `margin-bottom: ${Number(attributes.spacingAfter) * PT_TO_PX}px` }
+            }
+          },
+          shading: {
+            default: null,
+            parseHTML: (element) => element.style.backgroundColor || null,
+            renderHTML: (attributes) => {
+              if (!attributes.shading) return {}
+              return { style: `background-color: ${attributes.shading}` }
+            }
+          },
+          border: {
+            default: 'none',
+            parseHTML: () => 'none',
+            renderHTML: (attributes) => {
+              const border = attributes.border as ParagraphBorder
+              if (!border || border === 'none') return {}
+              const rule = '1px solid #1f1f1f'
+              if (border === 'all') return { style: `border: ${rule}; padding: 4px 6px;` }
+              if (border === 'bottom') return { style: `border-bottom: ${rule}; padding-bottom: 4px;` }
+              return { style: `border-top: ${rule}; padding-top: 4px;` }
+            }
+          },
+          firstLineIndent: {
+            default: null,
+            parseHTML: (element) => {
+              const value = parseFloat(element.style.textIndent || '')
+              return Number.isFinite(value) ? value / 96 : null
+            },
+            renderHTML: (attributes) => {
+              if (!attributes.firstLineIndent) return {}
+              return { style: `text-indent: ${Number(attributes.firstLineIndent) * 96}px` }
             }
           }
         }
@@ -130,6 +166,23 @@ export const ParagraphFormatting = Extension.create<ParagraphFormattingOptions>(
               ...(before !== null ? { spacingBefore: before } : {}),
               ...(after !== null ? { spacingAfter: after } : {})
             })
+          )
+        },
+      setShading:
+        (color) =>
+        ({ commands }) => {
+          return this.options.types.every((type) => commands.updateAttributes(type, { shading: color }))
+        },
+      setParagraphBorder:
+        (border) =>
+        ({ commands }) => {
+          return this.options.types.every((type) => commands.updateAttributes(type, { border }))
+        },
+      setFirstLineIndent:
+        (inches) =>
+        ({ commands }) => {
+          return this.options.types.every((type) =>
+            commands.updateAttributes(type, { firstLineIndent: inches })
           )
         }
     }

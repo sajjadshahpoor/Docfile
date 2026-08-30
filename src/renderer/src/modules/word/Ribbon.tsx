@@ -26,6 +26,8 @@ interface RibbonProps {
   onZoomChange: (zoom: number) => void
   onToggleFindReplace: () => void
   onOpenFileMenu: () => void
+  showFormattingMarks: boolean
+  onToggleFormattingMarks: () => void
 }
 
 export default function Ribbon({
@@ -37,7 +39,9 @@ export default function Ribbon({
   zoom,
   onZoomChange,
   onToggleFindReplace,
-  onOpenFileMenu
+  onOpenFileMenu,
+  showFormattingMarks,
+  onToggleFormattingMarks
 }: RibbonProps): JSX.Element {
   const [activeTab, setActiveTab] = useState<RibbonTabName>('home')
 
@@ -69,7 +73,14 @@ export default function Ribbon({
         ))}
       </div>
       <div className="border-t border-gray-200 px-3 py-1.5">
-        {activeTab === 'home' && <HomeTab editor={editor} onToggleFindReplace={onToggleFindReplace} />}
+        {activeTab === 'home' && (
+          <HomeTab
+            editor={editor}
+            onToggleFindReplace={onToggleFindReplace}
+            showFormattingMarks={showFormattingMarks}
+            onToggleFormattingMarks={onToggleFormattingMarks}
+          />
+        )}
         {activeTab === 'insert' && (
           <InsertTab
             editor={editor}

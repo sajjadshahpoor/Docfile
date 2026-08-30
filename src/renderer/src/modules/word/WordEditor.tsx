@@ -1,6 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Underline from '@tiptap/extension-underline'
 import TextStyle from '@tiptap/extension-text-style'
 import FontFamily from '@tiptap/extension-font-family'
 import Color from '@tiptap/extension-color'
@@ -27,6 +26,10 @@ import { useAppStore } from '../../store/appStore'
 import { FontSize } from './extensions/fontSize'
 import { PageBreak } from './extensions/pageBreak'
 import { ParagraphFormatting } from './extensions/paragraphFormatting'
+import { UnderlineWithStyle } from './extensions/underlineExtras'
+import { StrikeWithDouble } from './extensions/strikeExtras'
+import { CharacterSpacing } from './extensions/characterSpacing'
+import { TextEffects } from './extensions/textEffects'
 import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './pageSetup'
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
 import { DEFAULT_SETTINGS, type AppSettings } from './settings'
@@ -58,6 +61,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const [zoom, setZoom] = useState(100)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
   const [fileMenuOpen, setFileMenuOpen] = useState(false)
+  const [showFormattingMarks, setShowFormattingMarks] = useState(false)
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const loadedPathRef = useRef<string | null>(null)
   const isDirtyRef = useRef(isDirty)
@@ -65,11 +69,14 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Underline,
+      StarterKit.configure({ strike: false }),
+      StrikeWithDouble,
+      UnderlineWithStyle,
       TextStyle,
       FontFamily,
       FontSize,
+      CharacterSpacing,
+      TextEffects,
       Color,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -285,6 +292,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         onZoomChange={setZoom}
         onToggleFindReplace={() => setFindReplaceOpen((v) => !v)}
         onOpenFileMenu={() => setFileMenuOpen(true)}
+        showFormattingMarks={showFormattingMarks}
+        onToggleFormattingMarks={() => setShowFormattingMarks((v) => !v)}
       />
 
       {findReplaceOpen && editor && (
@@ -308,7 +317,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
           <div className="text-center text-sm text-gray-500">Opening document…</div>
         ) : (
           <div
-            className="docfile-editor mx-auto max-w-full origin-top"
+            className={`docfile-editor mx-auto max-w-full origin-top ${showFormattingMarks ? 'docfile-show-marks' : ''}`}
             style={{ width: dimensions.widthPx, transform: `scale(${zoom / 100})` }}
           >
             {headerFooter.showHeader && (

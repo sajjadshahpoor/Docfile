@@ -131,3 +131,23 @@ body {
   letter-spacing: 0.05em;
   color: #9aa4b2;
 }
+
+/* Show/Hide ¶ formatting marks */
+.docfile-show-marks .ProseMirror p::after,
+.docfile-show-marks .ProseMirror h1::after,
+.docfile-show-marks .ProseMirror h2::after,
+.docfile-show-marks .ProseMirror h3::after,
+.docfile-show-marks .ProseMirror h4::after,
+.docfile-show-marks .ProseMirror h5::after,
+.docfile-show-marks .ProseMirror h6::after {
+  content: '¶';
+  color: #8aa4d8;
+  margin-left: 2px;
+  font-weight: normal;
+}
+
+.docfile-show-marks .ProseMirror li::after {
+  content: '¶';
+  color: #8aa4d8;
+  margin-left: 2px;
+}
