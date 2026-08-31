@@ -66,6 +66,44 @@ export function listComments(editor: Editor): CommentEntry[] {
   return entries
 }
 
+export interface ChangeEntry {
+  type: 'insert' | 'delete'
+  author: string
+  date: string | null
+  from: number
+  to: number
+}
+
+export function listChanges(editor: Editor): ChangeEntry[] {
+  const entries: ChangeEntry[] = []
+  let open: ChangeEntry | null = null
+
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isText) return
+    const insertMark = node.marks.find((m) => m.type.name === 'trackInsert')
+    const deleteMark = node.marks.find((m) => m.type.name === 'trackDelete')
+    const mark = deleteMark ?? insertMark
+    const type = deleteMark ? 'delete' : insertMark ? 'insert' : null
+
+    if (type && open && open.type === type && open.to === pos) {
+      open.to = pos + node.nodeSize
+    } else {
+      if (open) entries.push(open)
+      open = type
+        ? {
+            type,
+            author: (mark?.attrs.author as string) ?? 'Docfile User',
+            date: (mark?.attrs.date as string) ?? null,
+            from: pos,
+            to: pos + node.nodeSize
+          }
+        : null
+    }
+  })
+  if (open) entries.push(open)
+  return entries
+}
+
 export function goToRange(editor: Editor, from: number, to: number): void {
   editor.chain().focus().setTextSelection({ from, to }).scrollIntoView().run()
 }

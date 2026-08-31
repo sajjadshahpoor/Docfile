@@ -54,6 +54,34 @@ body {
   cursor: help;
 }
 
+.docfile-editor .ProseMirror .docfile-track-insert {
+  color: #0b6e4f;
+  text-decoration: underline;
+}
+
+.docfile-editor .ProseMirror .docfile-track-delete {
+  color: #b00020;
+  text-decoration: line-through;
+}
+
+/* "No Markup" — preview as if every tracked change were accepted. */
+.docfile-markup-final .ProseMirror .docfile-track-insert {
+  color: inherit;
+  text-decoration: none;
+}
+.docfile-markup-final .ProseMirror .docfile-track-delete {
+  display: none;
+}
+
+/* "Original" — preview as if every tracked change were rejected. */
+.docfile-markup-original .ProseMirror .docfile-track-insert {
+  display: none;
+}
+.docfile-markup-original .ProseMirror .docfile-track-delete {
+  color: inherit;
+  text-decoration: none;
+}
+
 .docfile-watermark {
   position: absolute;
   inset: 0;

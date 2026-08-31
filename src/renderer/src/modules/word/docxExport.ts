@@ -5,11 +5,13 @@ import {
   CommentRangeEnd,
   CommentRangeStart,
   CommentReference,
+  DeletedTextRun,
   Document,
   Footer,
   Header,
   HeadingLevel,
   ImageRun,
+  InsertedTextRun,
   LineRuleType,
   Packer,
   PageBreak as DocxPageBreak,
@@ -170,10 +172,17 @@ interface ExportState {
   registeredComments: Set<number>
   comments: ICommentOptions[]
   nextCommentNumericId: number
+  nextChangeId: number
 }
 
 function createExportState(): ExportState {
-  return { commentNumericIds: new Map(), registeredComments: new Set(), comments: [], nextCommentNumericId: 1 }
+  return {
+    commentNumericIds: new Map(),
+    registeredComments: new Set(),
+    comments: [],
+    nextCommentNumericId: 1,
+    nextChangeId: 1
+  }
 }
 
 function getCommentNumericId(state: ExportState, markCommentId: string): number {
@@ -292,26 +301,49 @@ async function buildParagraphChildren(
     const isDoubleStrike = !!strikeMark?.attrs?.double
     const characterSpacing = characterSpacingToDxa(textStyleMark?.attrs?.characterSpacing)
 
-    pushChild(
-      new TextRun({
-        text: node.text,
-        bold: isBold,
-        italics: isItalic,
-        underline: underlineMark ? { type: underlineType, color: underlineColor } : undefined,
-        strike: !!strikeMark && !isDoubleStrike,
-        doubleStrike: isDoubleStrike,
-        subScript: isSubscript,
-        superScript: isSuperscript,
-        color,
-        font: fontFamily,
-        size,
-        smallCaps: !!textStyleMark?.attrs?.smallCaps,
-        allCaps: !!textStyleMark?.attrs?.allCaps,
-        characterSpacing,
-        highlight: highlightColor as never,
-        style: isLink ? 'Hyperlink' : undefined
-      })
-    )
+    const runOptions = {
+      text: node.text,
+      bold: isBold,
+      italics: isItalic,
+      underline: underlineMark ? { type: underlineType, color: underlineColor } : undefined,
+      strike: !!strikeMark && !isDoubleStrike,
+      doubleStrike: isDoubleStrike,
+      subScript: isSubscript,
+      superScript: isSuperscript,
+      color,
+      font: fontFamily,
+      size,
+      smallCaps: !!textStyleMark?.attrs?.smallCaps,
+      allCaps: !!textStyleMark?.attrs?.allCaps,
+      characterSpacing,
+      highlight: highlightColor as never,
+      style: isLink ? 'Hyperlink' : undefined
+    }
+
+    const trackInsertMark = marks.find((m) => m.type === 'trackInsert')
+    const trackDeleteMark = marks.find((m) => m.type === 'trackDelete')
+
+    if (trackDeleteMark) {
+      pushChild(
+        new DeletedTextRun({
+          ...runOptions,
+          id: state.nextChangeId++,
+          author: (trackDeleteMark.attrs?.author as string) || 'Docfile User',
+          date: (trackDeleteMark.attrs?.date as string) || new Date().toISOString()
+        })
+      )
+    } else if (trackInsertMark) {
+      pushChild(
+        new InsertedTextRun({
+          ...runOptions,
+          id: state.nextChangeId++,
+          author: (trackInsertMark.attrs?.author as string) || 'Docfile User',
+          date: (trackInsertMark.attrs?.date as string) || new Date().toISOString()
+        })
+      )
+    } else {
+      pushChild(new TextRun(runOptions))
+    }
   }
 
   flushBookmark()

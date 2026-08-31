@@ -4,18 +4,21 @@ import HomeTab from './ribbon/HomeTab'
 import InsertTab from './ribbon/InsertTab'
 import DesignTab from './ribbon/DesignTab'
 import LayoutTab from './ribbon/LayoutTab'
+import ReviewTab from './ribbon/ReviewTab'
 import ViewTab from './ribbon/ViewTab'
 import type { PageSetup } from './pageSetup'
 import type { HeaderFooterState } from './headerFooter'
 import type { DesignSettings } from './design'
+import type { MarkupView } from './extensions/trackChanges'
 
-type RibbonTabName = 'home' | 'insert' | 'design' | 'layout' | 'view'
+type RibbonTabName = 'home' | 'insert' | 'design' | 'layout' | 'review' | 'view'
 
 const TABS: { id: RibbonTabName; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'insert', label: 'Insert' },
   { id: 'design', label: 'Design' },
   { id: 'layout', label: 'Layout' },
+  { id: 'review', label: 'Review' },
   { id: 'view', label: 'View' }
 ]
 
@@ -27,6 +30,11 @@ interface RibbonProps {
   onHeaderFooterChange: (state: HeaderFooterState) => void
   design: DesignSettings
   onDesignChange: (design: DesignSettings) => void
+  pageContentHeightPx: number
+  trackChangesEnabled: boolean
+  onTrackChangesEnabledChange: (enabled: boolean) => void
+  markupView: MarkupView
+  onMarkupViewChange: (mode: MarkupView) => void
   zoom: number
   onZoomChange: (zoom: number) => void
   onToggleFindReplace: () => void
@@ -43,6 +51,11 @@ export default function Ribbon({
   onHeaderFooterChange,
   design,
   onDesignChange,
+  pageContentHeightPx,
+  trackChangesEnabled,
+  onTrackChangesEnabledChange,
+  markupView,
+  onMarkupViewChange,
   zoom,
   onZoomChange,
   onToggleFindReplace,
@@ -100,6 +113,16 @@ export default function Ribbon({
         )}
         {activeTab === 'layout' && (
           <LayoutTab editor={editor} pageSetup={pageSetup} onPageSetupChange={onPageSetupChange} />
+        )}
+        {activeTab === 'review' && (
+          <ReviewTab
+            editor={editor}
+            pageContentHeightPx={pageContentHeightPx}
+            trackChangesEnabled={trackChangesEnabled}
+            onTrackChangesEnabledChange={onTrackChangesEnabledChange}
+            markupView={markupView}
+            onMarkupViewChange={onMarkupViewChange}
+          />
         )}
         {activeTab === 'view' && <ViewTab zoom={zoom} onZoomChange={onZoomChange} />}
       </div>

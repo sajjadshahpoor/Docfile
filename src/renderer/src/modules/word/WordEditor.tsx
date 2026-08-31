@@ -33,6 +33,7 @@ import { CharacterSpacing } from './extensions/characterSpacing'
 import { TextEffects } from './extensions/textEffects'
 import { BookmarkMark } from './extensions/bookmarkMark'
 import { CommentMark } from './extensions/commentMark'
+import { TrackChanges, TrackInsertMark, TrackDeleteMark, type MarkupView } from './extensions/trackChanges'
 import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './pageSetup'
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
 import { DEFAULT_DESIGN, type DesignSettings } from './design'
@@ -63,6 +64,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const [pageSetup, setPageSetup] = useState<PageSetup>(DEFAULT_PAGE_SETUP)
   const [headerFooter, setHeaderFooter] = useState<HeaderFooterState>(DEFAULT_HEADER_FOOTER)
   const [design, setDesign] = useState<DesignSettings>(DEFAULT_DESIGN)
+  const [trackChangesEnabled, setTrackChangesEnabled] = useState(false)
+  const [markupView, setMarkupView] = useState<MarkupView>('all')
   const [zoom, setZoom] = useState(100)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
   const [fileMenuOpen, setFileMenuOpen] = useState(false)
@@ -97,7 +100,10 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       PageBreak,
       ParagraphFormatting,
       BookmarkMark,
-      CommentMark
+      CommentMark,
+      TrackInsertMark,
+      TrackDeleteMark,
+      TrackChanges
     ],
     content: '<p></p>',
     editorProps: {
@@ -132,6 +138,9 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       setPageSetup(loadedPageSetup)
       setHeaderFooter(DEFAULT_HEADER_FOOTER)
       setDesign(DEFAULT_DESIGN)
+      editor.chain().setTrackChangesEnabled(false).setMarkupView('all').run()
+      setTrackChangesEnabled(false)
+      setMarkupView('all')
       setCurrentPath(path)
       setIsDirty(false)
     } catch (err) {
@@ -224,6 +233,9 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       setPageSetup(DEFAULT_PAGE_SETUP)
       setHeaderFooter(DEFAULT_HEADER_FOOTER)
       setDesign(DEFAULT_DESIGN)
+      editor.chain().setTrackChangesEnabled(false).setMarkupView('all').run()
+      setTrackChangesEnabled(false)
+      setMarkupView('all')
       editor.commands.setContent(template.html)
       if (settings.defaultFont) {
         editor.chain().focus().selectAll().setFontFamily(settings.defaultFont).run()
@@ -309,6 +321,11 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         onHeaderFooterChange={setHeaderFooter}
         design={design}
         onDesignChange={setDesign}
+        pageContentHeightPx={dimensions.heightPx - dimensions.paddingTopPx - dimensions.paddingBottomPx}
+        trackChangesEnabled={trackChangesEnabled}
+        onTrackChangesEnabledChange={setTrackChangesEnabled}
+        markupView={markupView}
+        onMarkupViewChange={setMarkupView}
         zoom={zoom}
         onZoomChange={setZoom}
         onToggleFindReplace={() => setFindReplaceOpen((v) => !v)}
@@ -338,7 +355,9 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
           <div className="text-center text-sm text-gray-500">Opening document…</div>
         ) : (
           <div
-            className={`docfile-editor mx-auto max-w-full origin-top ${showFormattingMarks ? 'docfile-show-marks' : ''}`}
+            className={`docfile-editor mx-auto max-w-full origin-top ${showFormattingMarks ? 'docfile-show-marks' : ''} ${
+              markupView === 'final' ? 'docfile-markup-final' : markupView === 'original' ? 'docfile-markup-original' : ''
+            }`}
             style={{ width: dimensions.widthPx, transform: `scale(${zoom / 100})` }}
           >
             {headerFooter.showHeader && (
