@@ -1,6 +1,10 @@
 import {
   AlignmentType,
+  Bookmark,
   BorderStyle,
+  CommentRangeEnd,
+  CommentRangeStart,
+  CommentReference,
   Document,
   Footer,
   Header,
@@ -20,7 +24,9 @@ import {
   UnderlineType,
   WidthType,
   type IBordersOptions,
-  type ISectionOptions
+  type ICommentOptions,
+  type ISectionOptions,
+  type ParagraphChild
 } from 'docx'
 import {
   getMarginTwips,
@@ -155,19 +161,108 @@ function fontSizeToHalfPoints(value: unknown): number | undefined {
   return Number.isFinite(pt) ? Math.round(pt * 2) : undefined
 }
 
-async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | ImageRun)[]> {
+// Threaded through the whole export so every paragraph shares one numbering
+// sequence for comment ids and only registers each comment's text once, even
+// though the same comment mark can recur across several text nodes/paragraphs.
+interface ExportState {
+  commentNumericIds: Map<string, number>
+  registeredComments: Set<number>
+  comments: ICommentOptions[]
+  nextCommentNumericId: number
+}
+
+function createExportState(): ExportState {
+  return { commentNumericIds: new Map(), registeredComments: new Set(), comments: [], nextCommentNumericId: 1 }
+}
+
+function getCommentNumericId(state: ExportState, markCommentId: string): number {
+  let id = state.commentNumericIds.get(markCommentId)
+  if (id === undefined) {
+    id = state.nextCommentNumericId++
+    state.commentNumericIds.set(markCommentId, id)
+  }
+  return id
+}
+
+// Builds a paragraph's inline content, wrapping runs in Bookmark/CommentRange
+// markers where the corresponding TipTap marks are present. Bookmarks nest
+// inside comment ranges (Bookmark wraps only its own runs; CommentRangeStart/
+// End are flat siblings), so whenever either marker changes we close the
+// bookmark first, then the comment, before reopening whichever is still active.
+async function buildParagraphChildren(
+  nodes: TNode[] | undefined,
+  state: ExportState
+): Promise<ParagraphChild[]> {
   if (!nodes) return []
-  const runs: (TextRun | ImageRun)[] = []
+  const out: ParagraphChild[] = []
+
+  let openCommentId: string | null = null
+  let openCommentNumericId: number | null = null
+  let openBookmarkName: string | null = null
+  let bookmarkBuffer: ParagraphChild[] = []
+
+  const flushBookmark = (): void => {
+    if (openBookmarkName && bookmarkBuffer.length) {
+      out.push(new Bookmark({ id: openBookmarkName, children: bookmarkBuffer }))
+    } else if (bookmarkBuffer.length) {
+      out.push(...bookmarkBuffer)
+    }
+    bookmarkBuffer = []
+    openBookmarkName = null
+  }
+
+  const closeComment = (): void => {
+    if (openCommentNumericId !== null) {
+      out.push(new CommentRangeEnd(openCommentNumericId))
+      out.push(new TextRun({ children: [new CommentReference(openCommentNumericId)] }))
+    }
+    openCommentId = null
+    openCommentNumericId = null
+  }
+
+  const pushChild = (child: ParagraphChild): void => {
+    if (openBookmarkName) bookmarkBuffer.push(child)
+    else out.push(child)
+  }
 
   for (const node of nodes) {
     if (node.type === 'image') {
       const image = await buildImageRun(node)
-      if (image) runs.push(image)
+      if (image) pushChild(image)
       continue
     }
     if (node.type !== 'text' || !node.text) continue
 
     const marks = node.marks ?? []
+    const commentMark = marks.find((m) => m.type === 'comment')
+    const bookmarkMark = marks.find((m) => m.type === 'bookmark')
+    const commentId = (commentMark?.attrs?.commentId as string) ?? null
+    const bookmarkName = (bookmarkMark?.attrs?.name as string) ?? null
+
+    if (commentId !== openCommentId || bookmarkName !== openBookmarkName) {
+      flushBookmark()
+      if (commentId !== openCommentId) {
+        closeComment()
+        if (commentId) {
+          const numericId = getCommentNumericId(state, commentId)
+          out.push(new CommentRangeStart(numericId))
+          if (!state.registeredComments.has(numericId)) {
+            state.registeredComments.add(numericId)
+            state.comments.push({
+              id: numericId,
+              author: (commentMark?.attrs?.author as string) || 'Docfile User',
+              date: commentMark?.attrs?.date
+                ? new Date(commentMark.attrs.date as string)
+                : new Date(),
+              children: [new Paragraph({ children: [new TextRun((commentMark?.attrs?.text as string) || '')] })]
+            })
+          }
+          openCommentId = commentId
+          openCommentNumericId = numericId
+        }
+      }
+      openBookmarkName = bookmarkName
+    }
     const isBold = marks.some((m) => m.type === 'bold')
     const isItalic = marks.some((m) => m.type === 'italic')
     const underlineMark = marks.find((m) => m.type === 'underline')
@@ -196,7 +291,7 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
     const isDoubleStrike = !!strikeMark?.attrs?.double
     const characterSpacing = characterSpacingToDxa(textStyleMark?.attrs?.characterSpacing)
 
-    runs.push(
+    pushChild(
       new TextRun({
         text: node.text,
         bold: isBold,
@@ -218,7 +313,10 @@ async function buildTextRuns(nodes: TNode[] | undefined): Promise<(TextRun | Ima
     )
   }
 
-  return runs
+  flushBookmark()
+  closeComment()
+
+  return out
 }
 
 function buildSpacingAndIndent(attrs: Record<string, unknown> | undefined): {
@@ -282,9 +380,13 @@ function buildShadingAndBorder(attrs: Record<string, unknown> | undefined): {
   return result
 }
 
-async function buildParagraph(node: TNode, listLevel?: { ordered: boolean; level: number }): Promise<Paragraph> {
+async function buildParagraph(
+  node: TNode,
+  state: ExportState,
+  listLevel?: { ordered: boolean; level: number }
+): Promise<Paragraph> {
   const align = ALIGNMENT_MAP[(node.attrs?.textAlign as string) ?? ''] ?? undefined
-  const children = await buildTextRuns(node.content)
+  const children = await buildParagraphChildren(node.content, state)
   const { spacing, indent } = buildSpacingAndIndent(node.attrs)
   const { shading, border } = buildShadingAndBorder(node.attrs)
 
@@ -325,31 +427,32 @@ async function buildParagraph(node: TNode, listLevel?: { ordered: boolean; level
 async function buildListItems(
   listNode: TNode,
   ordered: boolean,
-  level: number
+  level: number,
+  state: ExportState
 ): Promise<(Paragraph | Table)[]> {
   const out: (Paragraph | Table)[] = []
   for (const item of listNode.content ?? []) {
     for (const child of item.content ?? []) {
       if (child.type === 'bulletList') {
-        out.push(...(await buildListItems(child, false, level + 1)))
+        out.push(...(await buildListItems(child, false, level + 1, state)))
       } else if (child.type === 'orderedList') {
-        out.push(...(await buildListItems(child, true, level + 1)))
+        out.push(...(await buildListItems(child, true, level + 1, state)))
       } else {
-        out.push(await buildParagraph(child, { ordered, level }))
+        out.push(await buildParagraph(child, state, { ordered, level }))
       }
     }
   }
   return out
 }
 
-async function buildTable(node: TNode): Promise<Table> {
+async function buildTable(node: TNode, state: ExportState): Promise<Table> {
   const rows: TableRow[] = []
   for (const rowNode of node.content ?? []) {
     const cells: TableCell[] = []
     for (const cellNode of rowNode.content ?? []) {
       const cellChildren: (Paragraph | Table)[] = []
       for (const child of cellNode.content ?? []) {
-        cellChildren.push(...(await buildBlock(child)))
+        cellChildren.push(...(await buildBlock(child, state)))
       }
       cells.push(
         new TableCell({
@@ -364,19 +467,27 @@ async function buildTable(node: TNode): Promise<Table> {
   return new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } })
 }
 
-async function buildBlock(node: TNode): Promise<(Paragraph | Table)[]> {
+async function buildBlock(node: TNode, state: ExportState): Promise<(Paragraph | Table)[]> {
   switch (node.type) {
     case 'paragraph':
     case 'heading':
-      return [await buildParagraph(node)]
+      return [await buildParagraph(node, state)]
     case 'bulletList':
-      return buildListItems(node, false, 0)
+      return buildListItems(node, false, 0, state)
     case 'orderedList':
-      return buildListItems(node, true, 0)
+      return buildListItems(node, true, 0, state)
     case 'table':
-      return [await buildTable(node)]
+      return [await buildTable(node, state)]
     case 'pageBreak':
       return [new Paragraph({ children: [new DocxPageBreak()] })]
+    case 'image': {
+      // Tiptap's Image node is block-level by default (a sibling of
+      // paragraphs, not inline content inside one), so it needs its own
+      // top-level case here — without it, every inserted picture/shape was
+      // silently dropped on export.
+      const image = await buildImageRun(node)
+      return [new Paragraph({ children: image ? [image] : [] })]
+    }
     default:
       return []
   }
@@ -389,9 +500,10 @@ export async function exportDocx(
 ): Promise<Uint8Array> {
   const root = docJson as TNode
   const children: (Paragraph | Table)[] = []
+  const state = createExportState()
 
   for (const node of root.content ?? []) {
-    children.push(...(await buildBlock(node)))
+    children.push(...(await buildBlock(node, state)))
   }
 
   const margins = getMarginTwips(pageSetup)
@@ -459,6 +571,7 @@ export async function exportDocx(
 
   const doc = new Document({
     hyphenation: { autoHyphenation: pageSetup.hyphenation === 'auto' },
+    comments: state.comments.length ? { children: state.comments } : undefined,
     numbering: {
       config: [
         {

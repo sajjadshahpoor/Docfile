@@ -42,6 +42,16 @@ body {
   hyphens: auto;
 }
 
+.docfile-editor .ProseMirror .docfile-bookmark {
+  border-bottom: 1px dotted #7c9cbf;
+}
+
+.docfile-editor .ProseMirror .docfile-comment {
+  background: #fff2b2;
+  border-bottom: 1px dashed #d9a900;
+  cursor: help;
+}
+
 /* Line numbers — approximate Word's "Continuous" numbering by numbering
    paragraphs (not wrapped lines) in the left margin gutter. */
 .docfile-line-numbers .ProseMirror {

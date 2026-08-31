@@ -502,9 +502,23 @@ export default function HomeTab({
         </ToolbarButton>
       </Group>
 
-      {fontDialogOpen && <FontDialog editor={editor} onClose={() => setFontDialogOpen(false)} />}
+      {fontDialogOpen && (
+        <FontDialog
+          editor={editor}
+          onClose={() => {
+            setFontDialogOpen(false)
+            editor.commands.focus()
+          }}
+        />
+      )}
       {paragraphDialogOpen && (
-        <ParagraphDialog editor={editor} onClose={() => setParagraphDialogOpen(false)} />
+        <ParagraphDialog
+          editor={editor}
+          onClose={() => {
+            setParagraphDialogOpen(false)
+            editor.commands.focus()
+          }}
+        />
       )}
     </div>
   )

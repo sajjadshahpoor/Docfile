@@ -243,7 +243,10 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
         <MarginsDialog
           pageSetup={pageSetup}
           onApply={applyCustomMargins}
-          onClose={() => setMarginsDialogOpen(false)}
+          onClose={() => {
+            setMarginsDialogOpen(false)
+            editor.commands.focus()
+          }}
         />
       )}
     </div>

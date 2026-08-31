@@ -31,6 +31,8 @@ import { UnderlineWithStyle } from './extensions/underlineExtras'
 import { StrikeWithDouble } from './extensions/strikeExtras'
 import { CharacterSpacing } from './extensions/characterSpacing'
 import { TextEffects } from './extensions/textEffects'
+import { BookmarkMark } from './extensions/bookmarkMark'
+import { CommentMark } from './extensions/commentMark'
 import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './pageSetup'
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
 import { DEFAULT_SETTINGS, type AppSettings } from './settings'
@@ -91,7 +93,9 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       Superscript,
       CharacterCount,
       PageBreak,
-      ParagraphFormatting
+      ParagraphFormatting,
+      BookmarkMark,
+      CommentMark
     ],
     content: '<p></p>',
     editorProps: {
