@@ -26,6 +26,8 @@ import UnsavedChangesDialog from './UnsavedChangesDialog'
 import { importDocx } from './docxImport'
 import { exportDocx } from './docxExport'
 import { importPageSetup } from './pageSetupImport'
+import { importRoundTripExtras } from './docxRoundTripImport'
+import { applyParagraphPatches } from './docxRoundTripApply'
 import { useAppStore } from '../../store/appStore'
 import { FontSize } from './extensions/fontSize'
 import { PageBreak } from './extensions/pageBreak'
@@ -183,15 +185,17 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
     setFileMenuOpen(false)
     try {
       const data = await window.docfile.readFile(path)
-      const [result, loadedPageSetup] = await Promise.all([
+      const [result, loadedPageSetup, extras] = await Promise.all([
         importDocx(data),
-        importPageSetup(data)
+        importPageSetup(data),
+        importRoundTripExtras(data)
       ])
       editor.commands.setContent(result.html)
+      applyParagraphPatches(editor, extras.paragraphPatches)
       setWarnings(result.warnings)
       setPageSetup(loadedPageSetup)
-      setHeaderFooter(DEFAULT_HEADER_FOOTER)
-      setDesign(DEFAULT_DESIGN)
+      setHeaderFooter(extras.headerFooter)
+      setDesign(extras.design)
       setSources([])
       setCitationStyle(DEFAULT_CITATION_STYLE)
       editor.chain().setTrackChangesEnabled(false).setMarkupView('all').run()
