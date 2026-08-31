@@ -2,16 +2,19 @@ import { useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import HomeTab from './ribbon/HomeTab'
 import InsertTab from './ribbon/InsertTab'
+import DesignTab from './ribbon/DesignTab'
 import LayoutTab from './ribbon/LayoutTab'
 import ViewTab from './ribbon/ViewTab'
 import type { PageSetup } from './pageSetup'
 import type { HeaderFooterState } from './headerFooter'
+import type { DesignSettings } from './design'
 
-type RibbonTabName = 'home' | 'insert' | 'layout' | 'view'
+type RibbonTabName = 'home' | 'insert' | 'design' | 'layout' | 'view'
 
 const TABS: { id: RibbonTabName; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'insert', label: 'Insert' },
+  { id: 'design', label: 'Design' },
   { id: 'layout', label: 'Layout' },
   { id: 'view', label: 'View' }
 ]
@@ -22,6 +25,8 @@ interface RibbonProps {
   onPageSetupChange: (setup: PageSetup) => void
   headerFooter: HeaderFooterState
   onHeaderFooterChange: (state: HeaderFooterState) => void
+  design: DesignSettings
+  onDesignChange: (design: DesignSettings) => void
   zoom: number
   onZoomChange: (zoom: number) => void
   onToggleFindReplace: () => void
@@ -36,6 +41,8 @@ export default function Ribbon({
   onPageSetupChange,
   headerFooter,
   onHeaderFooterChange,
+  design,
+  onDesignChange,
   zoom,
   onZoomChange,
   onToggleFindReplace,
@@ -87,6 +94,9 @@ export default function Ribbon({
             headerFooter={headerFooter}
             onHeaderFooterChange={onHeaderFooterChange}
           />
+        )}
+        {activeTab === 'design' && (
+          <DesignTab editor={editor} design={design} onDesignChange={onDesignChange} />
         )}
         {activeTab === 'layout' && (
           <LayoutTab editor={editor} pageSetup={pageSetup} onPageSetupChange={onPageSetupChange} />

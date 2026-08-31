@@ -27,6 +27,8 @@ body {
 }
 
 .docfile-editor .ProseMirror {
+  position: relative;
+  z-index: 1;
   outline: none;
   min-height: var(--page-content-min-height, 1056px);
   padding: var(--page-pad-top, 96px) var(--page-pad-right, 72px) var(--page-pad-bottom, 96px)
@@ -50,6 +52,23 @@ body {
   background: #fff2b2;
   border-bottom: 1px dashed #d9a900;
   cursor: help;
+}
+
+.docfile-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-45deg);
+  font-size: 72px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(110, 110, 110, 0.38);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 0;
+  user-select: none;
 }
 
 /* Line numbers — approximate Word's "Continuous" numbering by numbering

@@ -35,6 +35,7 @@ import { BookmarkMark } from './extensions/bookmarkMark'
 import { CommentMark } from './extensions/commentMark'
 import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './pageSetup'
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
+import { DEFAULT_DESIGN, type DesignSettings } from './design'
 import { DEFAULT_SETTINGS, type AppSettings } from './settings'
 import type { DocTemplate } from './templates'
 
@@ -61,6 +62,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [pageSetup, setPageSetup] = useState<PageSetup>(DEFAULT_PAGE_SETUP)
   const [headerFooter, setHeaderFooter] = useState<HeaderFooterState>(DEFAULT_HEADER_FOOTER)
+  const [design, setDesign] = useState<DesignSettings>(DEFAULT_DESIGN)
   const [zoom, setZoom] = useState(100)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
   const [fileMenuOpen, setFileMenuOpen] = useState(false)
@@ -128,6 +130,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       editor.commands.setContent(result.html)
       setWarnings(result.warnings)
       setPageSetup(loadedPageSetup)
+      setHeaderFooter(DEFAULT_HEADER_FOOTER)
+      setDesign(DEFAULT_DESIGN)
       setCurrentPath(path)
       setIsDirty(false)
     } catch (err) {
@@ -156,7 +160,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         targetPath = picked
       }
 
-      const bytes = await exportDocx(editor.getJSON(), pageSetup, headerFooter)
+      const bytes = await exportDocx(editor.getJSON(), pageSetup, headerFooter, design)
       await window.docfile.writeFile(targetPath, bytes)
       setCurrentPath(targetPath)
       setIsDirty(false)
@@ -219,6 +223,7 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       setError(null)
       setPageSetup(DEFAULT_PAGE_SETUP)
       setHeaderFooter(DEFAULT_HEADER_FOOTER)
+      setDesign(DEFAULT_DESIGN)
       editor.commands.setContent(template.html)
       if (settings.defaultFont) {
         editor.chain().focus().selectAll().setFontFamily(settings.defaultFont).run()
@@ -302,6 +307,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         onPageSetupChange={setPageSetup}
         headerFooter={headerFooter}
         onHeaderFooterChange={setHeaderFooter}
+        design={design}
+        onDesignChange={setDesign}
         zoom={zoom}
         onZoomChange={setZoom}
         onToggleFindReplace={() => setFindReplaceOpen((v) => !v)}
@@ -347,9 +354,9 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
               </div>
             )}
             <div
-              className={`docfile-page ${pageSetup.lineNumbering === 'continuous' ? 'docfile-line-numbers' : ''} ${
-                pageSetup.hyphenation === 'auto' ? 'docfile-hyphenate' : ''
-              }`}
+              className={`docfile-page relative overflow-hidden ${
+                pageSetup.lineNumbering === 'continuous' ? 'docfile-line-numbers' : ''
+              } ${pageSetup.hyphenation === 'auto' ? 'docfile-hyphenate' : ''}`}
               style={
                 {
                   '--page-pad-top': `${dimensions.paddingTopPx}px`,
@@ -357,10 +364,20 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
                   '--page-pad-left': `${dimensions.paddingLeftPx}px`,
                   '--page-pad-right': `${dimensions.paddingRightPx}px`,
                   '--page-content-min-height': `${dimensions.heightPx}px`,
-                  '--page-columns': pageSetup.columns
+                  '--page-columns': pageSetup.columns,
+                  backgroundColor: design.pageColor ?? undefined,
+                  border:
+                    design.pageBorder === 'none'
+                      ? undefined
+                      : `${design.pageBorder === 'thick' ? 4 : 1.5}px solid ${design.pageBorderColor}`
                 } as CSSProperties
               }
             >
+              {design.watermarkText && (
+                <div className="docfile-watermark" aria-hidden="true">
+                  {design.watermarkText}
+                </div>
+              )}
               <EditorContent editor={editor} />
             </div>
             {headerFooter.showFooter && (

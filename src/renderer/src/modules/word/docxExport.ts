@@ -35,6 +35,7 @@ import {
   type PageSetup
 } from './pageSetup'
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
+import { DEFAULT_DESIGN, PAGE_BORDER_SIZE, type DesignSettings } from './design'
 
 // Minimal shape of a ProseMirror/TipTap JSON node — TipTap doesn't export a
 // public node-JSON type, so we model just the fields this converter reads.
@@ -496,7 +497,8 @@ async function buildBlock(node: TNode, state: ExportState): Promise<(Paragraph |
 export async function exportDocx(
   docJson: unknown,
   pageSetup: PageSetup = DEFAULT_PAGE_SETUP,
-  headerFooter: HeaderFooterState = DEFAULT_HEADER_FOOTER
+  headerFooter: HeaderFooterState = DEFAULT_HEADER_FOOTER,
+  design: DesignSettings = DEFAULT_DESIGN
 ): Promise<Uint8Array> {
   const root = docJson as TNode
   const children: (Paragraph | Table)[] = []
@@ -510,13 +512,30 @@ export async function exportDocx(
   const size = PAGE_SIZE_TWIPS[pageSetup.size]
   const isLandscape = pageSetup.orientation === 'landscape'
 
-  const headers = headerFooter.showHeader
-    ? {
-        default: new Header({
-          children: [new Paragraph({ children: [new TextRun(headerFooter.headerText)] })]
-        })
-      }
-    : undefined
+  // A watermark lives in the header layer regardless of whether the user's
+  // own header text is shown, matching how Word implements it — so both are
+  // merged into one Header here instead of the watermark needing its own
+  // header toggle.
+  const headerChildren: Paragraph[] = []
+  if (design.watermarkText) {
+    headerChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: design.watermarkText,
+            bold: true,
+            color: 'C0C0C0',
+            size: 144
+          })
+        ]
+      })
+    )
+  }
+  if (headerFooter.showHeader) {
+    headerChildren.push(new Paragraph({ children: [new TextRun(headerFooter.headerText)] }))
+  }
+  const headers = headerChildren.length ? { default: new Header({ children: headerChildren }) } : undefined
 
   const footers = headerFooter.showFooter
     ? {
@@ -553,7 +572,23 @@ export async function exportDocx(
           bottom: margins.bottom,
           left: margins.left,
           right: margins.right
-        }
+        },
+        borders:
+          design.pageBorder === 'none'
+            ? undefined
+            : (() => {
+                const line = {
+                  style: BorderStyle.SINGLE,
+                  size: PAGE_BORDER_SIZE[design.pageBorder],
+                  color: normalizeColor(design.pageBorderColor) ?? '2E5B9A'
+                }
+                return {
+                  pageBorderTop: line,
+                  pageBorderBottom: line,
+                  pageBorderLeft: line,
+                  pageBorderRight: line
+                }
+              })()
       },
       column:
         pageSetup.columns > 1
@@ -572,6 +607,7 @@ export async function exportDocx(
   const doc = new Document({
     hyphenation: { autoHyphenation: pageSetup.hyphenation === 'auto' },
     comments: state.comments.length ? { children: state.comments } : undefined,
+    background: design.pageColor ? { color: normalizeColor(design.pageColor) } : undefined,
     numbering: {
       config: [
         {
