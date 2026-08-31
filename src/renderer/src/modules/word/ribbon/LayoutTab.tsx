@@ -75,7 +75,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
           value={pageSetup.marginPreset}
           onChange={(e) => setMarginPreset(e.target.value as MarginPreset)}
           title="Margins"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="normal">Normal (1&quot;)</option>
           <option value="narrow">Narrow (0.5&quot;)</option>
@@ -89,7 +89,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => setMarginsDialogOpen(true)}
             title="Edit custom margins"
-            className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800 hover:bg-gray-50"
           >
             Edit…
           </button>
@@ -103,7 +103,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
           value={pageSetup.orientation}
           onChange={(e) => setOrientation(e.target.value as Orientation)}
           title="Orientation"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="portrait">Portrait</option>
           <option value="landscape">Landscape</option>
@@ -117,7 +117,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
           value={pageSetup.size}
           onChange={(e) => setSize(e.target.value as PageSizeName)}
           title="Page size"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           {(Object.keys(PAGE_SIZE_LABELS) as PageSizeName[]).map((size) => (
             <option key={size} value={size}>
@@ -134,7 +134,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
           value={pageSetup.columns}
           onChange={(e) => setColumns(Number(e.target.value) as ColumnCount)}
           title="Columns"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value={1}>One</option>
           <option value={2}>Two</option>
@@ -150,7 +150,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
           onMouseDown={(e) => e.preventDefault()}
           onClick={insertPageBreak}
           title="Insert a page break"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800 hover:bg-gray-50"
         >
           Page Break
         </button>
@@ -163,7 +163,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
           value={pageSetup.lineNumbering}
           onChange={(e) => setLineNumbering(e.target.value as LineNumbering)}
           title="Line numbers"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="none">None</option>
           <option value="continuous">Continuous</option>
@@ -177,7 +177,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
           value={pageSetup.hyphenation}
           onChange={(e) => setHyphenation(e.target.value as Hyphenation)}
           title="Hyphenation"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="none">None</option>
           <option value="auto">Automatic</option>
@@ -197,7 +197,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
             value={indentLeft}
             title="Indent left (in.)"
             onChange={(e) => editor.chain().focus().setIndentLeft(parseFloat(e.target.value) || 0).run()}
-            className="h-8 w-16 rounded border border-gray-200 bg-white px-1.5 text-sm text-gray-700"
+            className="h-7 w-16 rounded border border-gray-300 bg-white px-1.5 text-[13px] text-gray-800"
           />
           <span className="text-xs text-gray-500">Right</span>
           <input
@@ -208,7 +208,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
             value={indentRight}
             title="Indent right (in.)"
             onChange={(e) => editor.chain().focus().setIndentRight(parseFloat(e.target.value) || 0).run()}
-            className="h-8 w-16 rounded border border-gray-200 bg-white px-1.5 text-sm text-gray-700"
+            className="h-7 w-16 rounded border border-gray-300 bg-white px-1.5 text-[13px] text-gray-800"
           />
         </div>
         <div className="flex items-center gap-1">
@@ -222,7 +222,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
             onChange={(e) =>
               editor.chain().focus().setParagraphSpacing(Number(e.target.value), null).run()
             }
-            className="h-8 w-14 rounded border border-gray-200 bg-white px-1.5 text-sm text-gray-700"
+            className="h-7 w-14 rounded border border-gray-300 bg-white px-1.5 text-[13px] text-gray-800"
           />
           <span className="text-xs text-gray-500">After</span>
           <input
@@ -234,7 +234,7 @@ export default function LayoutTab({ editor, pageSetup, onPageSetupChange }: Layo
             onChange={(e) =>
               editor.chain().focus().setParagraphSpacing(null, Number(e.target.value)).run()
             }
-            className="h-8 w-14 rounded border border-gray-200 bg-white px-1.5 text-sm text-gray-700"
+            className="h-7 w-14 rounded border border-gray-300 bg-white px-1.5 text-[13px] text-gray-800"
           />
         </div>
       </Group>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
-import { Group, GroupDivider, ToolbarButton } from './shared'
+import { Keyboard20Regular, ArrowClockwise20Regular, Flag20Regular, Info20Regular } from '@fluentui/react-icons'
+import { Group, GroupDivider, ToolbarButton, BigButton } from './shared'
 import ShortcutsDialog from './ShortcutsDialog'
 import AboutModal from '../../../components/AboutModal'
 
@@ -61,16 +62,14 @@ export default function HelpTab({ editor }: HelpTabProps): JSX.Element {
   return (
     <div className="flex flex-wrap items-start">
       <Group label="Help">
-        <ToolbarButton title="Keyboard Shortcuts" onClick={() => setShortcutsOpen(true)}>
-          ⌨ Keyboard Shortcuts
-        </ToolbarButton>
+        <BigButton title="Keyboard Shortcuts" icon={Keyboard20Regular} label="Shortcuts" onClick={() => setShortcutsOpen(true)} />
       </Group>
 
       <GroupDivider />
 
       <Group label="Updates">
-        <ToolbarButton title="Check for Updates" onClick={checkForUpdates}>
-          ⟳ Check for Updates
+        <ToolbarButton title="Check for Updates" icon={ArrowClockwise20Regular} onClick={checkForUpdates}>
+          Check for Updates
         </ToolbarButton>
         {updateStatus?.state === 'downloaded' && (
           <ToolbarButton title="Restart & Install" onClick={restartAndInstall}>
@@ -85,16 +84,16 @@ export default function HelpTab({ editor }: HelpTabProps): JSX.Element {
       <GroupDivider />
 
       <Group label="Feedback">
-        <ToolbarButton title="Report an Issue on GitHub" onClick={reportIssue}>
-          ⚑ Report an Issue
+        <ToolbarButton title="Report an Issue on GitHub" icon={Flag20Regular} onClick={reportIssue}>
+          Report an Issue
         </ToolbarButton>
       </Group>
 
       <GroupDivider />
 
       <Group label="About">
-        <ToolbarButton title="About Docfile" onClick={() => setAboutOpen(true)}>
-          ⓘ About Docfile
+        <ToolbarButton title="About Docfile" icon={Info20Regular} onClick={() => setAboutOpen(true)}>
+          About Docfile
         </ToolbarButton>
       </Group>
 

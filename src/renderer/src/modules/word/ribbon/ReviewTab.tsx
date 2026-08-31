@@ -1,6 +1,21 @@
 import { useState } from 'react'
 import type { Editor } from '@tiptap/react'
-import { Group, GroupDivider, ToolbarButton } from './shared'
+import {
+  TextWordCount20Regular,
+  Speaker220Regular,
+  Play20Regular,
+  Stop20Regular,
+  CommentAdd20Regular,
+  ChevronLeft20Regular,
+  ChevronRight20Regular,
+  Comment20Regular,
+  DocumentEdit20Regular,
+  Checkmark20Regular,
+  Dismiss20Regular,
+  CheckmarkCircle20Regular,
+  DismissCircle20Regular
+} from '@fluentui/react-icons'
+import { Group, GroupDivider, ToolbarButton, BigButton } from './shared'
 import CommentsPanel from './CommentsPanel'
 import WordCountDialog from './WordCountDialog'
 import { listComments, goToRange } from '../docMarks'
@@ -96,36 +111,28 @@ export default function ReviewTab({
   return (
     <div className="flex flex-wrap items-start">
       <Group label="Proofing">
-        <ToolbarButton title="Word Count" onClick={() => setWordCountOpen(true)}>
-          123 Word Count
-        </ToolbarButton>
+        <BigButton title="Word Count" icon={TextWordCount20Regular} label="Word Count" onClick={() => setWordCountOpen(true)} />
       </Group>
 
       <GroupDivider />
 
       <Group label="Speech">
-        <ToolbarButton
+        <BigButton
           title={speaking ? 'Stop reading' : 'Read Aloud (selection, or whole document)'}
+          icon={speaking ? Stop20Regular : Play20Regular}
+          label={speaking ? 'Stop' : 'Read Aloud'}
           active={speaking}
           onClick={readAloud}
-        >
-          {speaking ? '■ Stop' : '▶ Read Aloud'}
-        </ToolbarButton>
+        />
       </Group>
 
       <GroupDivider />
 
       <Group label="Comments">
-        <ToolbarButton title="New comment" onClick={addComment}>
-          💬 New
-        </ToolbarButton>
-        <ToolbarButton title="Previous comment" onClick={() => goToComment('previous')}>
-          ◀
-        </ToolbarButton>
-        <ToolbarButton title="Next comment" onClick={() => goToComment('next')}>
-          ▶
-        </ToolbarButton>
-        <ToolbarButton title="Show all comments" onClick={() => setCommentsOpen(true)}>
+        <BigButton title="New comment" icon={CommentAdd20Regular} label="New Comment" onClick={addComment} />
+        <ToolbarButton title="Previous comment" icon={ChevronLeft20Regular} onClick={() => goToComment('previous')} />
+        <ToolbarButton title="Next comment" icon={ChevronRight20Regular} onClick={() => goToComment('next')} />
+        <ToolbarButton title="Show all comments" icon={Comment20Regular} onClick={() => setCommentsOpen(true)}>
           Comments…
         </ToolbarButton>
       </Group>
@@ -133,18 +140,18 @@ export default function ReviewTab({
       <GroupDivider />
 
       <Group label="Tracking">
-        <ToolbarButton
+        <BigButton
           title="Track Changes"
+          icon={DocumentEdit20Regular}
+          label="Track Changes"
           active={trackChangesEnabled}
           onClick={toggleTrackChanges}
-        >
-          Track Changes
-        </ToolbarButton>
+        />
         <select
           value={markupView}
           onChange={(e) => setMarkup(e.target.value as MarkupView)}
           title="Display for review"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="all">All Markup</option>
           <option value="final">No Markup</option>
@@ -155,22 +162,14 @@ export default function ReviewTab({
       <GroupDivider />
 
       <Group label="Changes">
-        <ToolbarButton title="Accept this change" onClick={acceptCurrent}>
-          ✓ Accept
-        </ToolbarButton>
-        <ToolbarButton title="Reject this change" onClick={rejectCurrent}>
-          ✕ Reject
-        </ToolbarButton>
-        <ToolbarButton title="Previous change" onClick={() => goToPreviousChange(editor)}>
-          ◀
-        </ToolbarButton>
-        <ToolbarButton title="Next change" onClick={() => goToNextChange(editor)}>
-          ▶
-        </ToolbarButton>
-        <ToolbarButton title="Accept all changes" onClick={() => editor.chain().focus().acceptAllChanges().run()}>
+        <BigButton title="Accept this change" icon={CheckmarkCircle20Regular} label="Accept" onClick={acceptCurrent} />
+        <BigButton title="Reject this change" icon={DismissCircle20Regular} label="Reject" onClick={rejectCurrent} />
+        <ToolbarButton title="Previous change" icon={ChevronLeft20Regular} onClick={() => goToPreviousChange(editor)} />
+        <ToolbarButton title="Next change" icon={ChevronRight20Regular} onClick={() => goToNextChange(editor)} />
+        <ToolbarButton title="Accept all changes" icon={Checkmark20Regular} onClick={() => editor.chain().focus().acceptAllChanges().run()}>
           Accept All
         </ToolbarButton>
-        <ToolbarButton title="Reject all changes" onClick={() => editor.chain().focus().rejectAllChanges().run()}>
+        <ToolbarButton title="Reject all changes" icon={Dismiss20Regular} onClick={() => editor.chain().focus().rejectAllChanges().run()}>
           Reject All
         </ToolbarButton>
       </Group>

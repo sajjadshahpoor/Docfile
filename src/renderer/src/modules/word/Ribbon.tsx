@@ -78,11 +78,11 @@ export default function Ribbon({
 
   return (
     <div className="border-b border-gray-200 bg-white">
-      <div className="flex gap-1 px-3 pt-1.5 text-sm">
+      <div className="flex items-end gap-0.5 px-2 pt-1.5 text-[13px]">
         <button
           type="button"
           onClick={onOpenFileMenu}
-          className="rounded-t bg-office-word px-3 py-1.5 font-medium text-white hover:bg-office-word/90"
+          className="mb-[1px] rounded-t-sm bg-office-word px-3 py-1 font-medium text-white hover:bg-office-word/90"
         >
           File
         </button>
@@ -91,17 +91,17 @@ export default function Ribbon({
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded-t px-3 py-1.5 font-medium transition ${
+            className={`rounded-t-sm border-b-2 px-2.5 py-1 font-medium transition ${
               activeTab === tab.id
-                ? 'border border-b-0 border-gray-200 bg-white text-office-word'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'border-office-word text-office-word'
+                : 'border-transparent text-[#242424] hover:bg-[#f5f5f5]'
             }`}
           >
             {tab.label}
           </button>
         ))}
       </div>
-      <div className="border-t border-gray-200 px-3 py-1.5">
+      <div className="border-t border-gray-200 px-2 py-1">
         {activeTab === 'home' && (
           <HomeTab
             editor={editor}

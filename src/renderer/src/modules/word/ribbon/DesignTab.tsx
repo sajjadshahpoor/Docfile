@@ -37,7 +37,7 @@ export default function DesignTab({ editor, design, onDesignChange }: DesignTabP
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => applyStyleSet(editor, styleSet)}
-            className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800 hover:bg-gray-50"
           >
             {styleSet.label}
           </button>
@@ -70,7 +70,7 @@ export default function DesignTab({ editor, design, onDesignChange }: DesignTabP
             e.target.value = ''
           }}
           title="Font pair"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="" disabled>
             Choose fonts…
@@ -93,7 +93,7 @@ export default function DesignTab({ editor, design, onDesignChange }: DesignTabP
             e.target.value = ''
           }}
           title="Paragraph spacing"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="" disabled>
             Choose spacing…
@@ -113,7 +113,7 @@ export default function DesignTab({ editor, design, onDesignChange }: DesignTabP
           value={design.watermarkText && WATERMARK_PRESETS.includes(design.watermarkText) ? design.watermarkText : design.watermarkText ? 'custom' : 'none'}
           onChange={(e) => setWatermark(e.target.value)}
           title="Watermark"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="none">No Watermark</option>
           {WATERMARK_PRESETS.map((w) => (
@@ -136,7 +136,7 @@ export default function DesignTab({ editor, design, onDesignChange }: DesignTabP
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onDesignChange({ ...design, pageColor: null })}
           title="Remove page color"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800 hover:bg-gray-50"
         >
           No Color
         </button>
@@ -145,7 +145,7 @@ export default function DesignTab({ editor, design, onDesignChange }: DesignTabP
           value={design.pageBorder}
           onChange={(e) => setPageBorder(e.target.value as PageBorderWeight)}
           title="Page borders"
-          className="h-8 rounded border border-gray-200 bg-white px-2 text-sm text-gray-700"
+          className="h-7 rounded border border-gray-300 bg-white px-2 text-[13px] text-gray-800"
         >
           <option value="none">No Border</option>
           <option value="single">Single Border</option>

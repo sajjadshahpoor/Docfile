@@ -15,6 +15,7 @@ import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import CharacterCount from '@tiptap/extension-character-count'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { ArrowLeft20Regular, ArrowUndo20Regular, ArrowRedo20Regular, Save20Regular } from '@fluentui/react-icons'
 import Ribbon from './Ribbon'
 import FindReplace from './FindReplace'
 import StatusBar from './StatusBar'
@@ -327,27 +328,28 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2">
+          <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-1.5">
             <button
               onClick={handleClose}
-              className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+              className="flex items-center gap-1 rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
               title="Back to launcher"
             >
-              ← Home
+              <ArrowLeft20Regular className="h-4 w-4" /> Home
             </button>
+            <div className="mx-0.5 h-5 w-px bg-gray-200" />
             <button
               title="Undo"
               onClick={() => editor?.chain().focus().undo().run()}
-              className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-gray-100"
             >
-              ↶
+              <ArrowUndo20Regular className="h-4 w-4" />
             </button>
             <button
               title="Redo"
               onClick={() => editor?.chain().focus().redo().run()}
-              className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+              className="flex h-7 w-7 items-center justify-center rounded text-gray-600 hover:bg-gray-100"
             >
-              ↷
+              <ArrowRedo20Regular className="h-4 w-4" />
             </button>
             <div className="flex-1">
               <div className="text-sm font-medium text-gray-800">
@@ -358,9 +360,9 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
             <button
               onClick={() => handleSave(false)}
               disabled={isSaving}
-              className="rounded-md bg-office-word px-3 py-1.5 text-sm font-medium text-white hover:bg-office-word/90 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-office-word px-3 py-1.5 text-sm font-medium text-white hover:bg-office-word/90 disabled:opacity-50"
             >
-              {isSaving ? 'Saving…' : 'Save'}
+              <Save20Regular className="h-4 w-4" /> {isSaving ? 'Saving…' : 'Save'}
             </button>
             <button
               onClick={() => handleSave(true)}

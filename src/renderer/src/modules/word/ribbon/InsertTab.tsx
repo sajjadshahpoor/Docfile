@@ -1,6 +1,24 @@
 import type { Editor } from '@tiptap/react'
 import { useEffect, useRef, useState } from 'react'
-import { ToolbarButton, Group, GroupDivider } from './shared'
+import {
+  DocumentAdd20Regular,
+  DocumentPageBreak20Regular,
+  Table20Regular,
+  Image20Regular,
+  ShapeUnion20Regular,
+  Link20Regular,
+  LinkDismiss20Regular,
+  Bookmark20Regular,
+  Comment20Regular,
+  CommentAdd20Regular,
+  DocumentHeader20Regular,
+  DocumentFooter20Regular,
+  NumberSymbol20Regular,
+  TextField20Regular,
+  CalendarClock20Regular,
+  MathFormula20Regular
+} from '@fluentui/react-icons'
+import { ToolbarButton, BigButton, Group, GroupDivider } from './shared'
 import TableMenu from './TableMenu'
 import BookmarksDialog from './BookmarksDialog'
 import CommentsPanel from './CommentsPanel'
@@ -146,10 +164,10 @@ export default function InsertTab({
   return (
     <div className="flex flex-wrap items-start">
       <Group label="Pages">
-        <ToolbarButton title="Insert a blank page" onClick={insertBlankPage}>
+        <ToolbarButton title="Insert a blank page" icon={DocumentAdd20Regular} onClick={insertBlankPage}>
           Blank Page
         </ToolbarButton>
-        <ToolbarButton title="Insert page break" onClick={insertPageBreak}>
+        <ToolbarButton title="Insert page break" icon={DocumentPageBreak20Regular} onClick={insertPageBreak}>
           Page Break
         </ToolbarButton>
       </Group>
@@ -158,9 +176,7 @@ export default function InsertTab({
 
       <Group label="Tables">
         <div ref={tableRef} className="relative">
-          <ToolbarButton title="Insert table" onClick={() => setTableMenuOpen((v) => !v)}>
-            ⊞ Table
-          </ToolbarButton>
+          <BigButton title="Insert table" icon={Table20Regular} label="Table" onClick={() => setTableMenuOpen((v) => !v)} />
           {tableMenuOpen && <TableMenu editor={editor} onClose={closeTableMenu} />}
         </div>
       </Group>
@@ -168,9 +184,7 @@ export default function InsertTab({
       <GroupDivider />
 
       <Group label="Illustrations">
-        <ToolbarButton title="Insert picture" onClick={insertImage}>
-          🖼 Picture
-        </ToolbarButton>
+        <BigButton title="Insert picture" icon={Image20Regular} label="Pictures" onClick={insertImage} />
         <input
           ref={fileInputRef}
           type="file"
@@ -179,9 +193,7 @@ export default function InsertTab({
           onChange={onImageSelected}
         />
         <div ref={shapesRef} className="relative">
-          <ToolbarButton title="Insert shape" onClick={() => setShapesMenuOpen((v) => !v)}>
-            ▱ Shapes
-          </ToolbarButton>
+          <BigButton title="Insert shape" icon={ShapeUnion20Regular} label="Shapes" onClick={() => setShapesMenuOpen((v) => !v)} />
           {shapesMenuOpen && (
             <div className="absolute left-0 top-full z-40 mt-1 w-40 rounded-lg border border-gray-200 bg-white p-1 shadow-xl">
               {(Object.keys(SHAPE_LABELS) as ShapeKind[]).map((kind) => (
@@ -202,24 +214,20 @@ export default function InsertTab({
       <GroupDivider />
 
       <Group label="Links">
-        <ToolbarButton title="Insert link" active={editor.isActive('link')} onClick={insertLink}>
-          🔗 Link
+        <ToolbarButton title="Insert link" icon={Link20Regular} active={editor.isActive('link')} onClick={insertLink}>
+          Link
         </ToolbarButton>
-        <ToolbarButton title="Remove link" disabled={!editor.isActive('link')} onClick={removeLink}>
-          🔗✕
-        </ToolbarButton>
-        <ToolbarButton title="Bookmark" onClick={() => setBookmarksOpen(true)}>
-          🔖 Bookmark
+        <ToolbarButton title="Remove link" icon={LinkDismiss20Regular} disabled={!editor.isActive('link')} onClick={removeLink} />
+        <ToolbarButton title="Bookmark" icon={Bookmark20Regular} onClick={() => setBookmarksOpen(true)}>
+          Bookmark
         </ToolbarButton>
       </Group>
 
       <GroupDivider />
 
       <Group label="Comments">
-        <ToolbarButton title="Add comment to selection" onClick={addComment}>
-          💬 Comment
-        </ToolbarButton>
-        <ToolbarButton title="Show all comments" onClick={() => setCommentsOpen(true)}>
+        <BigButton title="Add comment to selection" icon={CommentAdd20Regular} label="Comment" onClick={addComment} />
+        <ToolbarButton title="Show all comments" icon={Comment20Regular} onClick={() => setCommentsOpen(true)}>
           Comments…
         </ToolbarButton>
       </Group>
@@ -227,28 +235,28 @@ export default function InsertTab({
       <GroupDivider />
 
       <Group label="Header & Footer">
-        <ToolbarButton title="Toggle header" active={headerFooter.showHeader} onClick={toggleHeader}>
+        <ToolbarButton title="Toggle header" icon={DocumentHeader20Regular} active={headerFooter.showHeader} onClick={toggleHeader}>
           Header
         </ToolbarButton>
-        <ToolbarButton title="Toggle footer" active={headerFooter.showFooter} onClick={toggleFooter}>
+        <ToolbarButton title="Toggle footer" icon={DocumentFooter20Regular} active={headerFooter.showFooter} onClick={toggleFooter}>
           Footer
         </ToolbarButton>
-        <ToolbarButton title="Insert page number in footer" onClick={insertPageNumber}>
-          # Page Number
+        <ToolbarButton title="Insert page number in footer" icon={NumberSymbol20Regular} onClick={insertPageNumber}>
+          Page Number
         </ToolbarButton>
       </Group>
 
       <GroupDivider />
 
       <Group label="Text">
-        <ToolbarButton title="Insert text box (bordered block)" onClick={insertTextBox}>
-          ▭ Text Box
+        <ToolbarButton title="Insert text box (bordered block)" icon={TextField20Regular} onClick={insertTextBox}>
+          Text Box
         </ToolbarButton>
-        <ToolbarButton title="Insert date & time" onClick={insertDateTime}>
-          🕐 Date/Time
+        <ToolbarButton title="Insert date & time" icon={CalendarClock20Regular} onClick={insertDateTime}>
+          Date/Time
         </ToolbarButton>
-        <ToolbarButton title="Insert symbol" onClick={() => setSymbolOpen(true)}>
-          Ω Symbol
+        <ToolbarButton title="Insert symbol" icon={MathFormula20Regular} onClick={() => setSymbolOpen(true)}>
+          Symbol
         </ToolbarButton>
       </Group>
 
