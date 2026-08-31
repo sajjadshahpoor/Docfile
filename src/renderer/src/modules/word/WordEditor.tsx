@@ -198,6 +198,26 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
     }
   }
 
+  // Ctrl+S and Ctrl+F only ever worked by clicking their ribbon/toolbar
+  // buttons — real Word users reach for these by keyboard first, so wire up
+  // the actual shortcuts rather than just documenting ones that don't exist.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent): void => {
+      const mod = e.ctrlKey || e.metaKey
+      if (!mod) return
+      const key = e.key.toLowerCase()
+      if (key === 's') {
+        e.preventDefault()
+        handleSave(false)
+      } else if (key === 'f' && !e.shiftKey && !e.altKey) {
+        e.preventDefault()
+        setFindReplaceOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [handleSave])
+
   // When an action would discard unsaved changes (close/new/open), it's stashed
   // here and only run once the user resolves the UnsavedChangesDialog — matching
   // Word's real "Do you want to save changes?" Save/Don't Save/Cancel prompt.

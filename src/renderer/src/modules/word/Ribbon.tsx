@@ -6,13 +6,14 @@ import DesignTab from './ribbon/DesignTab'
 import LayoutTab from './ribbon/LayoutTab'
 import ReviewTab from './ribbon/ReviewTab'
 import ViewTab from './ribbon/ViewTab'
+import HelpTab from './ribbon/HelpTab'
 import type { PageSetup } from './pageSetup'
 import type { HeaderFooterState } from './headerFooter'
 import type { DesignSettings } from './design'
 import type { MarkupView } from './extensions/trackChanges'
 import type { ViewSettings } from './viewSettings'
 
-type RibbonTabName = 'home' | 'insert' | 'design' | 'layout' | 'review' | 'view'
+type RibbonTabName = 'home' | 'insert' | 'design' | 'layout' | 'review' | 'view' | 'help'
 
 const TABS: { id: RibbonTabName; label: string }[] = [
   { id: 'home', label: 'Home' },
@@ -20,7 +21,8 @@ const TABS: { id: RibbonTabName; label: string }[] = [
   { id: 'design', label: 'Design' },
   { id: 'layout', label: 'Layout' },
   { id: 'review', label: 'Review' },
-  { id: 'view', label: 'View' }
+  { id: 'view', label: 'View' },
+  { id: 'help', label: 'Help' }
 ]
 
 interface RibbonProps {
@@ -140,6 +142,7 @@ export default function Ribbon({
             onFitPageWidth={onFitPageWidth}
           />
         )}
+        {activeTab === 'help' && <HelpTab editor={editor} />}
       </div>
     </div>
   )
