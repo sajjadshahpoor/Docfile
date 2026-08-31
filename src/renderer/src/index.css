@@ -82,6 +82,25 @@ body {
   text-decoration: none;
 }
 
+.docfile-view-web .docfile-page {
+  box-shadow: none;
+}
+
+.docfile-view-draft .docfile-page {
+  box-shadow: none;
+}
+
+.docfile-gridlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
 .docfile-watermark {
   position: absolute;
   inset: 0;

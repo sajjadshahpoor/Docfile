@@ -10,6 +10,7 @@ import type { PageSetup } from './pageSetup'
 import type { HeaderFooterState } from './headerFooter'
 import type { DesignSettings } from './design'
 import type { MarkupView } from './extensions/trackChanges'
+import type { ViewSettings } from './viewSettings'
 
 type RibbonTabName = 'home' | 'insert' | 'design' | 'layout' | 'review' | 'view'
 
@@ -35,8 +36,11 @@ interface RibbonProps {
   onTrackChangesEnabledChange: (enabled: boolean) => void
   markupView: MarkupView
   onMarkupViewChange: (mode: MarkupView) => void
+  view: ViewSettings
+  onViewChange: (next: ViewSettings) => void
   zoom: number
   onZoomChange: (zoom: number) => void
+  onFitPageWidth: () => void
   onToggleFindReplace: () => void
   onOpenFileMenu: () => void
   showFormattingMarks: boolean
@@ -56,8 +60,11 @@ export default function Ribbon({
   onTrackChangesEnabledChange,
   markupView,
   onMarkupViewChange,
+  view,
+  onViewChange,
   zoom,
   onZoomChange,
+  onFitPageWidth,
   onToggleFindReplace,
   onOpenFileMenu,
   showFormattingMarks,
@@ -124,7 +131,15 @@ export default function Ribbon({
             onMarkupViewChange={onMarkupViewChange}
           />
         )}
-        {activeTab === 'view' && <ViewTab zoom={zoom} onZoomChange={onZoomChange} />}
+        {activeTab === 'view' && (
+          <ViewTab
+            view={view}
+            onViewChange={onViewChange}
+            zoom={zoom}
+            onZoomChange={onZoomChange}
+            onFitPageWidth={onFitPageWidth}
+          />
+        )}
       </div>
     </div>
   )

@@ -18,6 +18,8 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import Ribbon from './Ribbon'
 import FindReplace from './FindReplace'
 import StatusBar from './StatusBar'
+import Ruler from './ribbon/Ruler'
+import NavigationPane from './ribbon/NavigationPane'
 import Backstage from './backstage/Backstage'
 import UnsavedChangesDialog from './UnsavedChangesDialog'
 import { importDocx } from './docxImport'
@@ -38,6 +40,7 @@ import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './page
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
 import { DEFAULT_DESIGN, type DesignSettings } from './design'
 import { DEFAULT_SETTINGS, type AppSettings } from './settings'
+import { DEFAULT_VIEW_SETTINGS, type ViewSettings } from './viewSettings'
 import type { DocTemplate } from './templates'
 
 interface WordEditorProps {
@@ -67,11 +70,13 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const [trackChangesEnabled, setTrackChangesEnabled] = useState(false)
   const [markupView, setMarkupView] = useState<MarkupView>('all')
   const [zoom, setZoom] = useState(100)
+  const [view, setView] = useState<ViewSettings>(DEFAULT_VIEW_SETTINGS)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
   const [fileMenuOpen, setFileMenuOpen] = useState(false)
   const [showFormattingMarks, setShowFormattingMarks] = useState(false)
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const loadedPathRef = useRef<string | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isDirtyRef = useRef(isDirty)
   isDirtyRef.current = isDirty
 
@@ -120,6 +125,10 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
     if (!editor) return
     editor.view.dom.setAttribute('spellcheck', settings.spellCheck ? 'true' : 'false')
   }, [editor, settings.spellCheck])
+
+  useEffect(() => {
+    editor?.setEditable(view.mode !== 'read')
+  }, [editor, view.mode])
 
   const loadDocument = async (path: string): Promise<void> => {
     if (!editor) return
@@ -267,158 +276,214 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
 
   const dimensions = getPreviewDimensions(pageSetup)
 
+  const handleFitPageWidth = (): void => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const available = el.clientWidth - 64
+    const nextZoom = Math.max(50, Math.min(200, Math.round((available / dimensions.widthPx) * 100)))
+    setZoom(nextZoom)
+  }
+
+  const isDraft = view.mode === 'draft'
+  const effectiveWidthPx = isDraft ? 700 : dimensions.widthPx
+  const effectivePadTopPx = isDraft ? 32 : dimensions.paddingTopPx
+  const effectivePadBottomPx = isDraft ? 32 : dimensions.paddingBottomPx
+  const effectivePadLeftPx = isDraft ? 32 : dimensions.paddingLeftPx
+  const effectivePadRightPx = isDraft ? 32 : dimensions.paddingRightPx
+
+  const isReadMode = view.mode === 'read'
+
   return (
     <div className="flex h-full flex-col bg-gray-100">
-      <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2">
-        <button
-          onClick={handleClose}
-          className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
-          title="Back to launcher"
-        >
-          ← Home
-        </button>
-        <button
-          title="Undo"
-          onClick={() => editor?.chain().focus().undo().run()}
-          className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
-        >
-          ↶
-        </button>
-        <button
-          title="Redo"
-          onClick={() => editor?.chain().focus().redo().run()}
-          className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
-        >
-          ↷
-        </button>
-        <div className="flex-1">
-          <div className="text-sm font-medium text-gray-800">
-            {fileNameFromPath(currentPath)}
-            {isDirty && <span className="text-gray-400"> •</span>}
-          </div>
-        </div>
-        <button
-          onClick={() => handleSave(false)}
-          disabled={isSaving}
-          className="rounded-md bg-office-word px-3 py-1.5 text-sm font-medium text-white hover:bg-office-word/90 disabled:opacity-50"
-        >
-          {isSaving ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          onClick={() => handleSave(true)}
-          disabled={isSaving}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-        >
-          Save As…
-        </button>
-      </div>
-
-      <Ribbon
-        editor={editor}
-        pageSetup={pageSetup}
-        onPageSetupChange={setPageSetup}
-        headerFooter={headerFooter}
-        onHeaderFooterChange={setHeaderFooter}
-        design={design}
-        onDesignChange={setDesign}
-        pageContentHeightPx={dimensions.heightPx - dimensions.paddingTopPx - dimensions.paddingBottomPx}
-        trackChangesEnabled={trackChangesEnabled}
-        onTrackChangesEnabledChange={setTrackChangesEnabled}
-        markupView={markupView}
-        onMarkupViewChange={setMarkupView}
-        zoom={zoom}
-        onZoomChange={setZoom}
-        onToggleFindReplace={() => setFindReplaceOpen((v) => !v)}
-        onOpenFileMenu={() => setFileMenuOpen(true)}
-        showFormattingMarks={showFormattingMarks}
-        onToggleFormattingMarks={() => setShowFormattingMarks((v) => !v)}
-      />
-
-      {findReplaceOpen && editor && (
-        <FindReplace editor={editor} onClose={() => setFindReplaceOpen(false)} />
-      )}
-
-      {error && (
-        <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-      {warnings.length > 0 && (
-        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">
-          Imported with {warnings.length} formatting note(s) — some advanced Word features may not
-          have carried over exactly.
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto py-8">
-        {isLoading ? (
-          <div className="text-center text-sm text-gray-500">Opening document…</div>
-        ) : (
-          <div
-            className={`docfile-editor mx-auto max-w-full origin-top ${showFormattingMarks ? 'docfile-show-marks' : ''} ${
-              markupView === 'final' ? 'docfile-markup-final' : markupView === 'original' ? 'docfile-markup-original' : ''
-            }`}
-            style={{ width: dimensions.widthPx, transform: `scale(${zoom / 100})` }}
+      {isReadMode ? (
+        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
+          <div className="text-sm font-medium text-gray-800">{fileNameFromPath(currentPath)}</div>
+          <button
+            onClick={() => setView({ ...view, mode: 'print' })}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            {headerFooter.showHeader && (
-              <div className="docfile-page mb-2 px-4 py-2 text-sm text-gray-500">
-                <input
-                  value={headerFooter.headerText}
-                  onChange={(e) =>
-                    setHeaderFooter({ ...headerFooter, headerText: e.target.value })
-                  }
-                  placeholder="Header text"
-                  className="w-full border-none bg-transparent outline-none placeholder:text-gray-300"
-                />
-              </div>
-            )}
-            <div
-              className={`docfile-page relative overflow-hidden ${
-                pageSetup.lineNumbering === 'continuous' ? 'docfile-line-numbers' : ''
-              } ${pageSetup.hyphenation === 'auto' ? 'docfile-hyphenate' : ''}`}
-              style={
-                {
-                  '--page-pad-top': `${dimensions.paddingTopPx}px`,
-                  '--page-pad-bottom': `${dimensions.paddingBottomPx}px`,
-                  '--page-pad-left': `${dimensions.paddingLeftPx}px`,
-                  '--page-pad-right': `${dimensions.paddingRightPx}px`,
-                  '--page-content-min-height': `${dimensions.heightPx}px`,
-                  '--page-columns': pageSetup.columns,
-                  backgroundColor: design.pageColor ?? undefined,
-                  border:
-                    design.pageBorder === 'none'
-                      ? undefined
-                      : `${design.pageBorder === 'thick' ? 4 : 1.5}px solid ${design.pageBorderColor}`
-                } as CSSProperties
-              }
+            ✕ Close Read Mode
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2">
+            <button
+              onClick={handleClose}
+              className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+              title="Back to launcher"
             >
-              {design.watermarkText && (
-                <div className="docfile-watermark" aria-hidden="true">
-                  {design.watermarkText}
+              ← Home
+            </button>
+            <button
+              title="Undo"
+              onClick={() => editor?.chain().focus().undo().run()}
+              className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+            >
+              ↶
+            </button>
+            <button
+              title="Redo"
+              onClick={() => editor?.chain().focus().redo().run()}
+              className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+            >
+              ↷
+            </button>
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-800">
+                {fileNameFromPath(currentPath)}
+                {isDirty && <span className="text-gray-400"> •</span>}
+              </div>
+            </div>
+            <button
+              onClick={() => handleSave(false)}
+              disabled={isSaving}
+              className="rounded-md bg-office-word px-3 py-1.5 text-sm font-medium text-white hover:bg-office-word/90 disabled:opacity-50"
+            >
+              {isSaving ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              onClick={() => handleSave(true)}
+              disabled={isSaving}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Save As…
+            </button>
+          </div>
+
+          <Ribbon
+            editor={editor}
+            pageSetup={pageSetup}
+            onPageSetupChange={setPageSetup}
+            headerFooter={headerFooter}
+            onHeaderFooterChange={setHeaderFooter}
+            design={design}
+            onDesignChange={setDesign}
+            pageContentHeightPx={dimensions.heightPx - dimensions.paddingTopPx - dimensions.paddingBottomPx}
+            trackChangesEnabled={trackChangesEnabled}
+            onTrackChangesEnabledChange={setTrackChangesEnabled}
+            markupView={markupView}
+            onMarkupViewChange={setMarkupView}
+            view={view}
+            onViewChange={setView}
+            zoom={zoom}
+            onZoomChange={setZoom}
+            onFitPageWidth={handleFitPageWidth}
+            onToggleFindReplace={() => setFindReplaceOpen((v) => !v)}
+            onOpenFileMenu={() => setFileMenuOpen(true)}
+            showFormattingMarks={showFormattingMarks}
+            onToggleFormattingMarks={() => setShowFormattingMarks((v) => !v)}
+          />
+
+          {findReplaceOpen && editor && (
+            <FindReplace editor={editor} onClose={() => setFindReplaceOpen(false)} />
+          )}
+
+          {error && (
+            <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          {warnings.length > 0 && (
+            <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">
+              Imported with {warnings.length} formatting note(s) — some advanced Word features may
+              not have carried over exactly.
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="flex flex-1 overflow-hidden">
+        {view.showNavPane && !isReadMode && editor && (
+          <NavigationPane editor={editor} onClose={() => setView({ ...view, showNavPane: false })} />
+        )}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto py-8">
+          {isLoading ? (
+            <div className="text-center text-sm text-gray-500">Opening document…</div>
+          ) : (
+            <>
+              {view.showRuler && (view.mode === 'print' || view.mode === 'web') && (
+                <div
+                  className="sticky top-0 z-10 mb-1 bg-gray-100 pb-1"
+                  style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}
+                >
+                  <Ruler
+                    widthPx={dimensions.widthPx}
+                    marginLeftPx={dimensions.paddingLeftPx}
+                    marginRightPx={dimensions.paddingRightPx}
+                  />
                 </div>
               )}
-              <EditorContent editor={editor} />
-            </div>
-            {headerFooter.showFooter && (
-              <div className="docfile-page mt-2 px-4 py-2 text-sm text-gray-500">
-                <input
-                  value={headerFooter.footerText}
-                  onChange={(e) =>
-                    setHeaderFooter({ ...headerFooter, footerText: e.target.value })
+              <div
+                className={`docfile-editor mx-auto max-w-full origin-top ${showFormattingMarks ? 'docfile-show-marks' : ''} ${
+                  markupView === 'final' ? 'docfile-markup-final' : markupView === 'original' ? 'docfile-markup-original' : ''
+                } ${view.mode === 'web' ? 'docfile-view-web' : ''} ${isDraft ? 'docfile-view-draft' : ''}`}
+                style={{ width: effectiveWidthPx, transform: `scale(${zoom / 100})` }}
+              >
+                {headerFooter.showHeader && !isDraft && (
+                  <div className="docfile-page mb-2 px-4 py-2 text-sm text-gray-500">
+                    <input
+                      value={headerFooter.headerText}
+                      onChange={(e) =>
+                        setHeaderFooter({ ...headerFooter, headerText: e.target.value })
+                      }
+                      placeholder="Header text"
+                      className="w-full border-none bg-transparent outline-none placeholder:text-gray-300"
+                    />
+                  </div>
+                )}
+                <div
+                  className={`docfile-page relative overflow-hidden ${
+                    pageSetup.lineNumbering === 'continuous' ? 'docfile-line-numbers' : ''
+                  } ${pageSetup.hyphenation === 'auto' ? 'docfile-hyphenate' : ''}`}
+                  style={
+                    {
+                      '--page-pad-top': `${effectivePadTopPx}px`,
+                      '--page-pad-bottom': `${effectivePadBottomPx}px`,
+                      '--page-pad-left': `${effectivePadLeftPx}px`,
+                      '--page-pad-right': `${effectivePadRightPx}px`,
+                      '--page-content-min-height': isDraft ? 'auto' : `${dimensions.heightPx}px`,
+                      '--page-columns': pageSetup.columns,
+                      backgroundColor: isDraft ? undefined : design.pageColor ?? undefined,
+                      border:
+                        isDraft || design.pageBorder === 'none'
+                          ? undefined
+                          : `${design.pageBorder === 'thick' ? 4 : 1.5}px solid ${design.pageBorderColor}`
+                    } as CSSProperties
                   }
-                  placeholder="Footer text"
-                  className="w-full border-none bg-transparent outline-none placeholder:text-gray-300"
-                />
-                {headerFooter.includePageNumber && (
-                  <div className="mt-1 text-center text-xs text-gray-400">Page #</div>
+                >
+                  {view.showGridlines && <div className="docfile-gridlines" aria-hidden="true" />}
+                  {design.watermarkText && !isDraft && (
+                    <div className="docfile-watermark" aria-hidden="true">
+                      {design.watermarkText}
+                    </div>
+                  )}
+                  <EditorContent editor={editor} />
+                </div>
+                {headerFooter.showFooter && !isDraft && (
+                  <div className="docfile-page mt-2 px-4 py-2 text-sm text-gray-500">
+                    <input
+                      value={headerFooter.footerText}
+                      onChange={(e) =>
+                        setHeaderFooter({ ...headerFooter, footerText: e.target.value })
+                      }
+                      placeholder="Footer text"
+                      className="w-full border-none bg-transparent outline-none placeholder:text-gray-300"
+                    />
+                    {headerFooter.includePageNumber && (
+                      <div className="mt-1 text-center text-xs text-gray-400">Page #</div>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
-      <StatusBar editor={editor} zoom={zoom} onZoomChange={setZoom} showWordCount={settings.showWordCount} />
+      {!isReadMode && (
+        <StatusBar editor={editor} zoom={zoom} onZoomChange={setZoom} showWordCount={settings.showWordCount} />
+      )}
 
       {fileMenuOpen && (
         <Backstage
