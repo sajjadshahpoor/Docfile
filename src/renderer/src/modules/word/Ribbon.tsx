@@ -4,6 +4,7 @@ import HomeTab from './ribbon/HomeTab'
 import InsertTab from './ribbon/InsertTab'
 import DesignTab from './ribbon/DesignTab'
 import LayoutTab from './ribbon/LayoutTab'
+import ReferencesTab from './ribbon/ReferencesTab'
 import ReviewTab from './ribbon/ReviewTab'
 import ViewTab from './ribbon/ViewTab'
 import HelpTab from './ribbon/HelpTab'
@@ -12,14 +13,16 @@ import type { HeaderFooterState } from './headerFooter'
 import type { DesignSettings } from './design'
 import type { MarkupView } from './extensions/trackChanges'
 import type { ViewSettings } from './viewSettings'
+import type { CitationStyle, Source } from './citations'
 
-type RibbonTabName = 'home' | 'insert' | 'design' | 'layout' | 'review' | 'view' | 'help'
+type RibbonTabName = 'home' | 'insert' | 'design' | 'layout' | 'references' | 'review' | 'view' | 'help'
 
 const TABS: { id: RibbonTabName; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'insert', label: 'Insert' },
   { id: 'design', label: 'Design' },
   { id: 'layout', label: 'Layout' },
+  { id: 'references', label: 'References' },
   { id: 'review', label: 'Review' },
   { id: 'view', label: 'View' },
   { id: 'help', label: 'Help' }
@@ -40,6 +43,10 @@ interface RibbonProps {
   onMarkupViewChange: (mode: MarkupView) => void
   view: ViewSettings
   onViewChange: (next: ViewSettings) => void
+  sources: Source[]
+  onSourcesChange: (sources: Source[]) => void
+  citationStyle: CitationStyle
+  onCitationStyleChange: (style: CitationStyle) => void
   zoom: number
   onZoomChange: (zoom: number) => void
   onFitPageWidth: () => void
@@ -64,6 +71,10 @@ export default function Ribbon({
   onMarkupViewChange,
   view,
   onViewChange,
+  sources,
+  onSourcesChange,
+  citationStyle,
+  onCitationStyleChange,
   zoom,
   onZoomChange,
   onFitPageWidth,
@@ -122,6 +133,15 @@ export default function Ribbon({
         )}
         {activeTab === 'layout' && (
           <LayoutTab editor={editor} pageSetup={pageSetup} onPageSetupChange={onPageSetupChange} />
+        )}
+        {activeTab === 'references' && (
+          <ReferencesTab
+            editor={editor}
+            sources={sources}
+            onSourcesChange={onSourcesChange}
+            citationStyle={citationStyle}
+            onCitationStyleChange={onCitationStyleChange}
+          />
         )}
         {activeTab === 'review' && (
           <ReviewTab

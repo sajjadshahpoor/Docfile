@@ -37,11 +37,15 @@ import { TextEffects } from './extensions/textEffects'
 import { BookmarkMark } from './extensions/bookmarkMark'
 import { CommentMark } from './extensions/commentMark'
 import { TrackChanges, TrackInsertMark, TrackDeleteMark, type MarkupView } from './extensions/trackChanges'
+import { FootnoteNode } from './extensions/footnoteNode'
+import { CitationNode } from './extensions/citationNode'
+import { TableOfContentsBlock, TableOfFiguresBlock } from './extensions/referenceBlocks'
 import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './pageSetup'
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
 import { DEFAULT_DESIGN, type DesignSettings } from './design'
 import { DEFAULT_SETTINGS, type AppSettings } from './settings'
 import { DEFAULT_VIEW_SETTINGS, type ViewSettings } from './viewSettings'
+import { DEFAULT_CITATION_STYLE, type CitationStyle, type Source } from './citations'
 import type { DocTemplate } from './templates'
 
 interface WordEditorProps {
@@ -72,6 +76,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const [markupView, setMarkupView] = useState<MarkupView>('all')
   const [zoom, setZoom] = useState(100)
   const [view, setView] = useState<ViewSettings>(DEFAULT_VIEW_SETTINGS)
+  const [sources, setSources] = useState<Source[]>([])
+  const [citationStyle, setCitationStyle] = useState<CitationStyle>(DEFAULT_CITATION_STYLE)
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
   const [fileMenuOpen, setFileMenuOpen] = useState(false)
   const [showFormattingMarks, setShowFormattingMarks] = useState(false)
@@ -109,7 +115,11 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       CommentMark,
       TrackInsertMark,
       TrackDeleteMark,
-      TrackChanges
+      TrackChanges,
+      FootnoteNode,
+      CitationNode,
+      TableOfContentsBlock,
+      TableOfFiguresBlock
     ],
     content: '<p></p>',
     editorProps: {
@@ -148,6 +158,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       setPageSetup(loadedPageSetup)
       setHeaderFooter(DEFAULT_HEADER_FOOTER)
       setDesign(DEFAULT_DESIGN)
+      setSources([])
+      setCitationStyle(DEFAULT_CITATION_STYLE)
       editor.chain().setTrackChangesEnabled(false).setMarkupView('all').run()
       setTrackChangesEnabled(false)
       setMarkupView('all')
@@ -263,6 +275,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       setPageSetup(DEFAULT_PAGE_SETUP)
       setHeaderFooter(DEFAULT_HEADER_FOOTER)
       setDesign(DEFAULT_DESIGN)
+      setSources([])
+      setCitationStyle(DEFAULT_CITATION_STYLE)
       editor.chain().setTrackChangesEnabled(false).setMarkupView('all').run()
       setTrackChangesEnabled(false)
       setMarkupView('all')
@@ -388,6 +402,10 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
             onMarkupViewChange={setMarkupView}
             view={view}
             onViewChange={setView}
+            sources={sources}
+            onSourcesChange={setSources}
+            citationStyle={citationStyle}
+            onCitationStyleChange={setCitationStyle}
             zoom={zoom}
             onZoomChange={setZoom}
             onFitPageWidth={handleFitPageWidth}

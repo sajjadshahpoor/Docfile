@@ -7,7 +7,9 @@ import {
   CommentReference,
   DeletedTextRun,
   Document,
+  EndnoteReferenceRun,
   Footer,
+  FootnoteReferenceRun,
   Header,
   HeadingLevel,
   ImageRun,
@@ -20,6 +22,7 @@ import {
   Paragraph,
   Table,
   TableCell,
+  TableOfContents,
   TableRow,
   TextRun,
   LineNumberRestartFormat,
@@ -173,6 +176,10 @@ interface ExportState {
   comments: ICommentOptions[]
   nextCommentNumericId: number
   nextChangeId: number
+  footnotes: Record<string, { children: Paragraph[] }>
+  endnotes: Record<string, { children: Paragraph[] }>
+  nextFootnoteId: number
+  nextEndnoteId: number
 }
 
 function createExportState(): ExportState {
@@ -181,7 +188,11 @@ function createExportState(): ExportState {
     registeredComments: new Set(),
     comments: [],
     nextCommentNumericId: 1,
-    nextChangeId: 1
+    nextChangeId: 1,
+    footnotes: {},
+    endnotes: {},
+    nextFootnoteId: 1,
+    nextEndnoteId: 1
   }
 }
 
@@ -239,6 +250,24 @@ async function buildParagraphChildren(
     if (node.type === 'image') {
       const image = await buildImageRun(node)
       if (image) pushChild(image)
+      continue
+    }
+    if (node.type === 'footnoteRef') {
+      const kind = (node.attrs?.kind as string) === 'endnote' ? 'endnote' : 'footnote'
+      const text = (node.attrs?.text as string) || ''
+      if (kind === 'endnote') {
+        const id = state.nextEndnoteId++
+        state.endnotes[String(id)] = { children: [new Paragraph({ children: [new TextRun(text)] })] }
+        pushChild(new EndnoteReferenceRun(id))
+      } else {
+        const id = state.nextFootnoteId++
+        state.footnotes[String(id)] = { children: [new Paragraph({ children: [new TextRun(text)] })] }
+        pushChild(new FootnoteReferenceRun(id))
+      }
+      continue
+    }
+    if (node.type === 'citationRef') {
+      pushChild(new TextRun((node.attrs?.displayText as string) || ''))
       continue
     }
     if (node.type !== 'text' || !node.text) continue
@@ -485,7 +514,14 @@ async function buildTable(node: TNode, state: ExportState): Promise<Table> {
     for (const cellNode of rowNode.content ?? []) {
       const cellChildren: (Paragraph | Table)[] = []
       for (const child of cellNode.content ?? []) {
-        cellChildren.push(...(await buildBlock(child, state)))
+        // Table of Contents/Figures blocks are only ever inserted at the
+        // main document cursor by this app's UI, never inside a cell — this
+        // filter just keeps that assumption type-safe rather than actually
+        // expecting it to trigger.
+        for (const built of await buildBlock(child, state)) {
+          if (built instanceof TableOfContents) continue
+          cellChildren.push(built)
+        }
       }
       cells.push(
         new TableCell({
@@ -500,7 +536,10 @@ async function buildTable(node: TNode, state: ExportState): Promise<Table> {
   return new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } })
 }
 
-async function buildBlock(node: TNode, state: ExportState): Promise<(Paragraph | Table)[]> {
+async function buildBlock(
+  node: TNode,
+  state: ExportState
+): Promise<(Paragraph | Table | TableOfContents)[]> {
   switch (node.type) {
     case 'paragraph':
     case 'heading':
@@ -521,6 +560,35 @@ async function buildBlock(node: TNode, state: ExportState): Promise<(Paragraph |
       const image = await buildImageRun(node)
       return [new Paragraph({ children: image ? [image] : [] })]
     }
+    case 'tocBlock':
+      // A real, updatable Word TOC field — the entries baked into the
+      // editor node become its cached (pre-Update) display, but the field
+      // itself is genuine, so right-click > Update Field works in Word.
+      return [
+        new TableOfContents('Table of Contents', {
+          hyperlink: true,
+          headingStyleRange: '1-3',
+          cachedEntries: ((node.attrs?.entries as { text: string; level: number }[]) ?? []).map((e) => ({
+            title: e.text,
+            level: e.level
+          }))
+        })
+      ]
+    case 'tofBlock': {
+      // Word's Table of Figures is also a real field type, but docx's
+      // TableOfContents wrapper only targets heading styles — a caption
+      // list is exported as plain static text instead (still correct
+      // content, just not a field the user can right-click and update
+      // inside Word itself).
+      const entries = (node.attrs?.entries as { text: string }[]) ?? []
+      const label = (node.attrs?.label as string) ?? 'Figure'
+      return [
+        new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun(`Table of ${label}s`)] }),
+        ...(entries.length
+          ? entries.map((e) => new Paragraph({ children: [new TextRun(e.text)] }))
+          : [new Paragraph({ children: [new TextRun(`No ${label} captions found.`)] })])
+      ]
+    }
     default:
       return []
   }
@@ -533,7 +601,7 @@ export async function exportDocx(
   design: DesignSettings = DEFAULT_DESIGN
 ): Promise<Uint8Array> {
   const root = docJson as TNode
-  const children: (Paragraph | Table)[] = []
+  const children: (Paragraph | Table | TableOfContents)[] = []
   const state = createExportState()
 
   for (const node of root.content ?? []) {
@@ -639,6 +707,8 @@ export async function exportDocx(
   const doc = new Document({
     hyphenation: { autoHyphenation: pageSetup.hyphenation === 'auto' },
     comments: state.comments.length ? { children: state.comments } : undefined,
+    footnotes: Object.keys(state.footnotes).length ? state.footnotes : undefined,
+    endnotes: Object.keys(state.endnotes).length ? state.endnotes : undefined,
     background: design.pageColor ? { color: normalizeColor(design.pageColor) } : undefined,
     numbering: {
       config: [

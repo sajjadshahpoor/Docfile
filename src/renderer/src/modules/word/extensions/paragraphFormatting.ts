@@ -28,6 +28,7 @@ declare module '@tiptap/core' {
       setShading: (color: string | null) => ReturnType
       setParagraphBorder: (border: ParagraphBorder) => ReturnType
       setFirstLineIndent: (inches: number | null) => ReturnType
+      setCaptionLabel: (label: string | null) => ReturnType
     }
   }
 }
@@ -124,6 +125,14 @@ export const ParagraphFormatting = Extension.create<ParagraphFormattingOptions>(
               if (!attributes.firstLineIndent) return {}
               return { style: `text-indent: ${Number(attributes.firstLineIndent) * 96}px` }
             }
+          },
+          captionLabel: {
+            default: null,
+            parseHTML: (element) => element.getAttribute('data-caption-label'),
+            renderHTML: (attributes) => {
+              if (!attributes.captionLabel) return {}
+              return { class: 'docfile-caption', 'data-caption-label': attributes.captionLabel }
+            }
           }
         }
       }
@@ -210,6 +219,11 @@ export const ParagraphFormatting = Extension.create<ParagraphFormattingOptions>(
           return this.options.types.every((type) =>
             commands.updateAttributes(type, { firstLineIndent: inches })
           )
+        },
+      setCaptionLabel:
+        (label) =>
+        ({ commands }) => {
+          return this.options.types.every((type) => commands.updateAttributes(type, { captionLabel: label }))
         }
     }
   }

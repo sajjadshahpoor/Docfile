@@ -267,3 +267,66 @@ body {
   color: #8aa4d8;
   margin-left: 2px;
 }
+
+/* References: footnotes/endnotes, citations, TOC/TOF blocks, captions */
+.docfile-editor .ProseMirror {
+  counter-reset: docfile-footnote docfile-endnote;
+}
+
+.docfile-note-ref {
+  color: #2e5b9a;
+  cursor: help;
+  user-select: none;
+}
+
+.docfile-note-footnote {
+  counter-increment: docfile-footnote;
+}
+.docfile-note-footnote::after {
+  content: counter(docfile-footnote);
+}
+
+.docfile-note-endnote {
+  counter-increment: docfile-endnote;
+}
+.docfile-note-endnote::after {
+  content: counter(docfile-endnote);
+}
+
+.docfile-citation-ref {
+  color: #2e5b9a;
+  cursor: default;
+}
+
+.docfile-toc-block {
+  margin: 8px 0;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  border-radius: 4px;
+}
+
+.docfile-toc-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #1f1f1f;
+}
+
+.docfile-toc-row {
+  font-size: 14px;
+  color: #2e5b9a;
+  padding: 2px 0;
+}
+
+.docfile-toc-empty {
+  font-size: 13px;
+  color: #9aa4b2;
+  font-style: italic;
+}
+
+.docfile-editor .ProseMirror .docfile-caption {
+  font-size: 13px;
+  font-style: italic;
+  color: #424242;
+  text-align: center;
+}
