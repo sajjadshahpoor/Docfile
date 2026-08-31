@@ -40,6 +40,7 @@ import { TrackChanges, TrackInsertMark, TrackDeleteMark, type MarkupView } from 
 import { FootnoteNode } from './extensions/footnoteNode'
 import { CitationNode } from './extensions/citationNode'
 import { TableOfContentsBlock, TableOfFiguresBlock } from './extensions/referenceBlocks'
+import { Pagination } from './extensions/pagination'
 import { DEFAULT_PAGE_SETUP, getPreviewDimensions, type PageSetup } from './pageSetup'
 import { DEFAULT_HEADER_FOOTER, type HeaderFooterState } from './headerFooter'
 import { DEFAULT_DESIGN, type DesignSettings } from './design'
@@ -82,6 +83,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   const [fileMenuOpen, setFileMenuOpen] = useState(false)
   const [showFormattingMarks, setShowFormattingMarks] = useState(false)
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
+  const [pageCount, setPageCount] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1)
   const loadedPathRef = useRef<string | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isDirtyRef = useRef(isDirty)
@@ -119,7 +122,8 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       FootnoteNode,
       CitationNode,
       TableOfContentsBlock,
-      TableOfFiguresBlock
+      TableOfFiguresBlock,
+      Pagination
     ],
     content: '<p></p>',
     editorProps: {
@@ -140,6 +144,36 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
   useEffect(() => {
     editor?.setEditable(view.mode !== 'read')
   }, [editor, view.mode])
+
+  useEffect(() => {
+    if (!editor) return
+    const handler = (): void => {
+      const storage = editor.storage.pagination ?? { pageCount: 1, breakPositions: [] }
+      setPageCount(storage.pageCount)
+      const pos = editor.state.selection.from
+      const page = storage.breakPositions.filter((p: number) => p <= pos).length + 1
+      setCurrentPage(page)
+    }
+    handler()
+    editor.on('transaction', handler)
+    return () => {
+      editor.off('transaction', handler)
+    }
+  }, [editor])
+
+  // Print Layout is the only view that paginates, matching real Word (Draft
+  // and Web Layout are continuous). Multi-column layout is skipped too —
+  // it's a separate CSS-column flow mode the height math below doesn't
+  // account for.
+  useEffect(() => {
+    if (!editor) return
+    const dims = getPreviewDimensions(pageSetup)
+    editor.commands.configurePagination({
+      enabled: view.mode === 'print' && pageSetup.columns === 1,
+      pageContentHeightPx: dims.heightPx - dims.paddingTopPx - dims.paddingBottomPx,
+      headerFooter
+    })
+  }, [editor, view.mode, pageSetup, headerFooter])
 
   const loadDocument = async (path: string): Promise<void> => {
     if (!editor) return
@@ -511,7 +545,9 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
                       className="w-full border-none bg-transparent outline-none placeholder:text-gray-300"
                     />
                     {headerFooter.includePageNumber && (
-                      <div className="mt-1 text-center text-xs text-gray-400">Page #</div>
+                      <div className="mt-1 text-center text-xs text-gray-400">
+                        Page {pageCount} of {pageCount}
+                      </div>
                     )}
                   </div>
                 )}
@@ -522,7 +558,14 @@ export default function WordEditor({ filePath }: WordEditorProps): JSX.Element {
       </div>
 
       {!isReadMode && (
-        <StatusBar editor={editor} zoom={zoom} onZoomChange={setZoom} showWordCount={settings.showWordCount} />
+        <StatusBar
+          editor={editor}
+          zoom={zoom}
+          onZoomChange={setZoom}
+          showWordCount={settings.showWordCount}
+          currentPage={view.mode === 'print' && pageSetup.columns === 1 ? currentPage : undefined}
+          pageCount={view.mode === 'print' && pageSetup.columns === 1 ? pageCount : undefined}
+        />
       )}
 
       {fileMenuOpen && (
