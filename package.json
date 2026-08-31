@@ -1,6 +1,6 @@
 {
   "name": "docfile",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Local, offline Office-style suite (Word/Excel/PowerPoint) for editing docx/xlsx/pptx files on disk.",
   "main": "./out/main/index.js",
   "author": "docfile",
